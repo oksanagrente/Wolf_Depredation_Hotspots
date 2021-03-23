@@ -1,0 +1,215 @@
+---
+title: "Supplementary Figure 1"
+author: "Grente et al."
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+    
+```{r global, include=FALSE}
+
+#Packages
+library(sf)
+library(ggplot2)
+library(RColorBrewer)
+library(cowplot)
+library(ggsn)
+library(plotly)
+library(repmis)
+hatch <- function(x, density) {
+  # x: polygon object (SpatialPolgyons* or sf)
+  # density: approx number of lines to plot
+  require(sp)
+  require(raster)
+  e <- extent(x)
+  w <- diff(e[1:2])
+  x1 <- seq(xmin(e), xmax(e)+w, length.out=floor(density*2))
+  x0 <- seq(xmin(e)-w, xmax(e), length.out=floor(density*2))
+  y0 <- rep(ymin(e), floor(density*2))
+  y1 <- rep(ymax(e), floor(density*2))
+  ll <- spLines(mapply(function(x0, y0, x1, y1) {
+    rbind(c(x0, y0), c(x1, y1))
+  }, x0, y0, x1, y1,
+  SIMPLIFY=FALSE))
+  if(is(x, 'sf')) {
+    require(sf)
+    ll <- st_as_sf(ll)
+    st_crs(ll) <- st_crs(x)
+    st_intersection(ll, x)
+  } else {
+    proj4string(ll) <- proj4string(x)
+    raster::intersect(ll, x)
+  }
+}
+
+#Data
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP1996_sf.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP2012_sf.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP1996_Mercantour_sf.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP2012_Mercantour_sf.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Study_area2.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Mercantour_sf.RData?raw=true")
+st_crs(UP1996_sf) <- 2154
+st_crs(UP2012_sf) <- 2154
+st_crs(UP1996_Mercantour_sf) <- 2154
+st_crs(UP2012_Mercantour_sf) <- 2154
+st_crs(Study_area2) <- 2154
+st_crs(Mercantour_sf) <- 2154
+
+#General setup
+theme_set(theme_bw()) 
+Annees <- c(1995:2018)
+
+#Prepare data for sheep numbers
+
+#Regional scale
+Effectifs_classes <- cut(UP1996_sf$EFF_OV, 
+                         breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf), 
+                         labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"), 
+                         right = FALSE)
+UP1996_sf$Eff_Class <- Effectifs_classes
+
+Effectifs_classes2 <- cut(UP2012_sf$EFF_OV,
+                         breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf),
+                         labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"),
+                         right = FALSE)
+UP2012_sf$Eff_Class <- Effectifs_classes2
+
+#Local scale
+Effectifs_classes_M <- cut(UP1996_Mercantour_sf$EFF_OV, 
+                         breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf), 
+                         labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"), 
+                         right = FALSE)
+UP1996_Mercantour_sf$Eff_Class <- Effectifs_classes_M
+
+Effectifs_classes2_M <- cut(UP2012_Mercantour_sf$EFF_OV,
+                         breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf),
+                         labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"),
+                         right = FALSE)
+UP2012_Mercantour_sf$Eff_Class <- Effectifs_classes2_M
+
+
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+Annual numbers of sheep and of sheep grazing days per pastoral surface in the study area from the census of 1996-1997 or the census from 2012-2014.
+
+```{r}
+selectInput("census", label = "Select the census to display", 
+choices = list("1996-1997", "2012-2014"), selected=c("1996-1997"))
+```
+
+```{r}
+radioButtons("layer", label = "Select the layer to display:", 
+choices = list("Number of sheep", "Sheep grazing days"), selected=c("Number of sheep"))
+```
+
+```{r}
+radioButtons("scale",
+             label = "Select the scale to display:",
+             choices = c("Regional scale","Local scale"),
+             selected = "Regional scale")
+```
+
+Column {data-width=800}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+
+baseplot1 <- ggplot() +
+                      geom_sf(data=Study_area2, fill="white", lwd=0.1) +
+                      geom_sf(data=Mercantour_sf,fill="white",color="black",size=0.3) +
+                      geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.3) +
+                      north(scale=0.07,symbol=2, x.min=616129, y.min=6214473, x.max=1077706, y.max=6633766) +
+                      ggsn::scalebar(transform = FALSE,dist = 30,dist_unit = "km", model = "WGS84",location="bottomleft",height=0.015,
+                              st.dist=0.018, st.size=5, border.size=0.25,x.min=626129, y.min=6214473, x.max=1077706, y.max=6633766) +
+                      theme(axis.title=element_blank(),
+                            axis.text=element_blank(),
+                            axis.ticks=element_blank(), panel.border = element_blank(),
+                            legend.text = element_text(size=13),
+                            legend.position = "right",
+                            legend.title = element_blank())
+
+baseplot2 <- ggplot() +
+                      geom_sf(data=Mercantour_sf,fill="white",color="black",size=0.3) +
+                      north(scale=0.10,symbol=2, x.min=981806, y.min=6314630.1, x.max=1074396.7, y.max=6385872.9) +
+                      ggsn::scalebar(transform = FALSE,dist = 5,dist_unit = "km", model = "WGS84",location="bottomleft",height=0.015,
+                                st.dist=0.018, st.size=5, border.size=0.25,x.min=981806, y.min=6314630.1, x.max=1074396.7, y.max=6385872.9) +
+                      theme(axis.title=element_blank(),
+                            axis.text=element_blank(),
+                            axis.ticks=element_blank(), panel.border = element_blank(),
+                            legend.text = element_text(size=13),
+                            legend.position = "right",
+                            legend.title = element_blank())
+
+renderPlot({
+  if(input$scale=="Regional scale"){
+  if(input$census=="1996-1997"){
+          if(input$layer=="Number of sheep"){
+            baseplot1 +
+              geom_sf(data=UP1996_sf, aes(fill=Eff_Class,color=Eff_Class),size=0.3) +
+              scale_fill_brewer(palette="Greens") +
+              scale_color_brewer(palette="Greens") 
+            } 
+          else{
+            baseplot1 +
+              geom_sf(data=UP1996_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
+              scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
+              scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) 
+          }
+  }
+  else{
+          if(input$layer=="Number of sheep"){
+            baseplot1 +
+              geom_sf(data=UP2012_sf, aes(fill=Eff_Class,color=Eff_Class),size=0.3) +
+              scale_fill_brewer(palette="Greens") +
+              scale_color_brewer(palette="Greens")
+            }
+          else{
+            baseplot1 +
+              geom_sf(data=UP2012_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
+              scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
+              scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9])
+          }
+  }}
+  else{
+      if(input$census=="1996-1997"){
+          if(input$layer=="Number of sheep"){
+            baseplot2 +
+              geom_sf(data=UP1996_Mercantour_sf, aes(fill=Eff_Class,color=Eff_Class),size=0.3) +
+              scale_fill_brewer(palette="Greens") +
+              scale_color_brewer(palette="Greens") 
+            } 
+          else{
+            baseplot2 +
+              geom_sf(data=UP1996_Mercantour_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
+              scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
+              scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) 
+          }
+  }
+  else{
+          if(input$layer=="Number of sheep"){
+            baseplot2 +
+              geom_sf(data=UP2012_Mercantour_sf, aes(fill=Eff_Class,color=Eff_Class),size=0.3) +
+              scale_fill_brewer(palette="Greens") +
+              scale_color_brewer(palette="Greens")
+            }
+          else{
+            baseplot2 +
+              geom_sf(data=UP2012_Mercantour_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
+              scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
+              scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9])
+          }
+        }
+  }
+             })
+```
+
+

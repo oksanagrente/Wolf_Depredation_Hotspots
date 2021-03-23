@@ -1,0 +1,153 @@
+---
+title: "Supplementary Figure 3"
+author: "Grente et al."
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+    
+```{r global, include=FALSE}
+
+#Packages
+library(sf)
+library(ggplot2)
+library(RColorBrewer)
+library(repmis)
+
+#Data
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Donnees_Cluster_UP_df_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Donnees_Cluster_UP_Mercantour_df_liste.RData?raw=true")
+
+#General setup
+Annees <- c(1995:2018)
+
+#National scale
+  #Number of attacks per PS
+Nb_AttperPS_fonction <- function(x){
+  NbAttperPS <- list()
+  Donnee_annee <- Donnees_Cluster_UP_df_liste[[as.character(x)]]$ATTAQUES
+  NbAttperPS[[x]] <- data.frame(Att=Donnee_annee)
+}
+NbAttperPS_liste <- lapply(1995:2018,function(x) Nb_AttperPS_fonction(x=x))
+names(NbAttperPS_liste) <- c(1995:2018)
+
+  #Calculates proportion of 1-2 depredations per PS, for article
+# Prop_classes_fonction <- function(x){
+#   Prop_liste <- list()
+#   Prop_classes <- as.data.frame(table(NbAttperPS_liste[[as.character(x)]]))
+#   Peu_depred <- sum(Prop_classes[c(1,2),2])/sum(Prop_classes$Freq)*100
+#   Prop_liste[[x]] <- Peu_depred}
+# Prop_liste <- lapply(1995:2018,function(x) Prop_classes_fonction(x=x))
+# names(Prop_liste) <- c(1995:2018)
+# mean(unlist(Prop_liste))
+# sd(unlist(Prop_liste))
+
+#Mercantour scale
+  #Number of attacks per PS
+Nb_AttperPS_Mercantour_fonction <- function(x){
+  NbAttperPS <- list()
+  Donnee_annee <- Donnees_Cluster_UP_Mercantour_df_liste[[as.character(x)]]$ATTAQUES
+  NbAttperPS[[x]] <- data.frame(Att=Donnee_annee)
+}
+NbAttperPS_Mercantour_liste <- lapply(1995:2018,function(x) Nb_AttperPS_Mercantour_fonction(x=x))
+names(NbAttperPS_Mercantour_liste) <- c(1995:2018)
+
+  #Calculates proportion of 1-2 depredations per PS, for article
+# Prop_classes_Mercantour_fonction <- function(x){
+#   Prop_liste <- list()
+#   Prop_classes <- as.data.frame(table(NbAttperPS_Mercantour_liste[[as.character(x)]]))
+#   Peu_depred <- sum(Prop_classes[c(1,2),2])/sum(Prop_classes$Freq)*100
+#   Prop_liste[[x]] <- Peu_depred}
+# Prop_liste_Mercantour <- lapply(1995:2018,function(x) Prop_classes_Mercantour_fonction(x=x))
+# names(Prop_liste_Mercantour) <- c(1995:2018)
+# mean(unlist(Prop_liste_Mercantour))
+# sd(unlist(Prop_liste_Mercantour))
+
+rm(Donnees_Cluster_UP_df_liste,Donnees_Cluster_UP_Mercantour_df_liste)
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+Annual distributions of the number of wolf depredations on sheep per pastoral surface at depredation risk between 1995 and 2018.
+
+Move the slider left or right for year selection: 
+```{r}
+sliderInput("x", 
+            label = "",
+            min = 1995, 
+            max = 2018, 
+            value = 2011, # année par défaut
+            step = 1,
+            sep = "") # supprime la virgule dans l'année
+```
+
+```{r}
+radioButtons("scale",
+             "Select the analysis scale:",
+             choices = c("Regional scale","Local scale"),
+             selected = "Regional scale")
+
+radioButtons("zeros",
+             "Restrict to the depredated pastoral surfaces only:",
+             choices = c("Yes","No"),
+             selected = "Yes")
+```
+
+Column {data-width=1000}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+limitmax_reg <- max(unlist(NbAttperPS_liste))
+limitmax_loc <- max(unlist(NbAttperPS_Mercantour_liste))
+
+baseplot <- ggplot() +
+    labs(x="Number of wolf depredations on sheep per pastoral surface", y= "Number of pastoral surfaces at depredation risk") +
+    theme_bw() +
+    theme(axis.text = element_text(size=14),
+          text=element_text(size=15),
+          axis.title = element_text(size=15, face="italic"),
+          axis.ticks = element_line(colour = 'black', size = 0.1),
+          axis.line = element_line(colour = "black", size=0.1),
+          panel.border = element_blank(), 
+          panel.grid.minor.x = element_line(colour = NA),
+          panel.grid.major = element_blank())
+
+renderPlot({
+   if(input$zeros=="Yes"){ #don't show the zeros
+     if(input$scale=="Regional scale"){
+        data <- NbAttperPS_liste[[as.character(input$x)]]
+        data <- data.frame(Att=data[data$Att>0,])
+        baseplot +
+             geom_histogram(data=data,
+             aes(x=Att),fill=brewer.pal(11,"Spectral")[1],binwidth=1, color='black') +
+             scale_x_continuous(labels = c(1:limitmax_reg), breaks=c(1:limitmax_reg),limits=c(0,limitmax_reg))}
+      else{
+        data <- NbAttperPS_Mercantour_liste[[as.character(input$x)]]
+        data <- data.frame(Att=data[data$Att>0,])
+        baseplot +
+             geom_histogram(data=data,
+             aes(x=Att),binwidth=1, fill=brewer.pal(11,"Spectral")[1], color='black') +
+             scale_x_continuous(labels = c(1:limitmax_loc), breaks=c(1:limitmax_loc),limits=c(0,limitmax_loc))}
+       }
+   else{ #show the zeros
+      if(input$scale=="Regional scale"){
+        baseplot +
+             geom_histogram(data=NbAttperPS_liste[[as.character(input$x)]],
+             aes(x=Att),fill=brewer.pal(11,"Spectral")[1],binwidth=1, color='black') +
+             scale_x_continuous(labels = c(0:limitmax_reg), breaks=c(0:limitmax_reg),limits=c(-1,limitmax_reg))}
+      else{
+        baseplot +
+             geom_histogram(data=NbAttperPS_Mercantour_liste[[as.character(input$x)]],
+             aes(x=Att),binwidth=1, fill=brewer.pal(11,"Spectral")[1], color='black') +
+             scale_x_continuous(labels = c(0:limitmax_loc), breaks=c(0:limitmax_loc),limits=c(-1,limitmax_loc))}
+         }
+          })
+```
+
+

@@ -1,0 +1,380 @@
+---
+title: "Supplementary Figure 2"
+author: "Grente et al."
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+    
+```{r global, include=FALSE}
+
+#Packages
+library(spatstat)
+library(sf)
+library(ggplot2)
+library(RColorBrewer)
+library(ggsn)
+library(repmis)
+hatch <- function(x, density) {
+  # x: polygon object (SpatialPolgyons* or sf)
+  # density: approx number of lines to plot
+  require(sp)
+  require(raster)
+  e <- extent(x)
+  w <- diff(e[1:2])
+  x1 <- seq(xmin(e), xmax(e)+w, length.out=floor(density*2))
+  x0 <- seq(xmin(e)-w, xmax(e), length.out=floor(density*2))
+  y0 <- rep(ymin(e), floor(density*2))
+  y1 <- rep(ymax(e), floor(density*2))
+  ll <- spLines(mapply(function(x0, y0, x1, y1) {
+    rbind(c(x0, y0), c(x1, y1))
+  }, x0, y0, x1, y1, 
+  SIMPLIFY=FALSE))  
+  if(is(x, 'sf')) {
+    require(sf)
+    ll <- st_as_sf(ll)
+    st_crs(ll) <- st_crs(x)
+    st_intersection(ll, x)
+  } else {
+    proj4string(ll) <- proj4string(x)
+    raster::intersect(ll, x)
+  }
+}
+
+#Data
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Study_area2.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Mercantour_sf.RData?raw=true")
+
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Maillage_Annee_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/MaillageM_Annee_sf_liste.RData?raw=true")
+
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Attaques_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Attaques_Mercantour_sf_liste.RData?raw=true")
+
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP_risk_sf_liste_1.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP_risk_sf_liste_2.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP_risk_sf_liste_3.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP_risk_sf_liste_4.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/UP_M_risk_sf_liste.RData?raw=true")
+
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/PSatt_Annee_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/PSatt_M_Annee_sf_liste.RData?raw=true")
+
+#General setup
+theme_set(theme_bw()) 
+Annees <- c(1995:2018)
+
+#Prepare PS under risk data
+UP_risk_sf_liste <- c(UP_risk_sf_liste_1,UP_risk_sf_liste_2,UP_risk_sf_liste_3,UP_risk_sf_liste_4)
+
+#Set CRS
+st_crs(Study_area2) <- 2154
+st_crs(Mercantour_sf) <- 2154
+
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+Annual distributions of wolf presence (yellow cells), pastoral surfaces under depredation risk (light green) including those with verified wolf depredations on sheep (dark green), and verified wolf depredations on sheep (red points) in the study area between 1995 and 2018.
+
+Move the slider left or right for year selection: 
+```{r}
+sliderInput("x", 
+            label = "",
+            min = 1995, 
+            max = 2018, 
+            value = 2011, # année par défaut
+            step = 1,
+            sep = "") # supprime la virgule dans l'année
+```
+
+```{r}
+checkboxGroupInput("layers", label = "Select the layers to display:", 
+choices = list("Wolf presence", "Pastoral surfaces", "Depredations"), selected=c("Wolf presence", "Pastoral surfaces", "Depredations"))
+```
+
+```{r}
+radioButtons("scale",
+             label = "Select the scale to display:",
+             choices = c("Regional scale","Local scale"),
+             selected = "Regional scale")
+```
+
+Column {data-width=800}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+
+baseplot1 <- ggplot() +
+        geom_sf(data=Study_area2, fill="white", color="black", lwd=0.1) +
+        north(scale=0.10,symbol=2, x.min=616129, y.min=6214473, x.max=1077706, y.max=6633766) +
+        ggsn::scalebar(transform = FALSE,dist = 25,dist_unit = "km", model = "WGS84",location="bottomleft",height=0.01,
+                 st.dist=0.015, st.size=4, border.size=0.25,x.min=626129, y.min=6214473, x.max=1077706, y.max=6633766) +
+        theme(axis.title=element_blank(),
+          axis.text=element_blank(),
+          axis.ticks=element_blank(), panel.border = element_blank(),
+          legend.text = element_text(size=15),
+          legend.title = element_text(size=20))
+
+baseplot2 <- ggplot() +
+                      geom_sf(data=Mercantour_sf,fill="white",color="black",size=0.3) +
+                      north(scale=0.10,symbol=2, x.min=981806, y.min=6314630.1, x.max=1074396.7, y.max=6385872.9) +
+                      ggsn::scalebar(transform = FALSE,dist = 5,dist_unit = "km", model = "WGS84",location="bottomleft",height=0.015,
+                                st.dist=0.018, st.size=5, border.size=0.25,x.min=981806, y.min=6314630.1, x.max=1074396.7, y.max=6385872.9) +
+                      theme(axis.title=element_blank(),
+                            axis.text=element_blank(),
+                            axis.ticks=element_blank(), panel.border = element_blank(),
+                            legend.text = element_text(size=13),
+                            legend.position = "right",
+                            legend.title = element_blank())
+
+renderPlot({
+  
+    if(input$scale=="Regional scale"){
+  
+          if("Wolf presence" %in% input$layers & "Pastoral surfaces" %in% input$layers & "Depredations" %in% input$layers){
+            st_crs(Maillage_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(Attaques_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(UP_risk_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(PSatt_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+            baseplot1 +
+             geom_sf(data=Maillage_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+             geom_sf(data=UP_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), color=brewer.pal(9,"Greens")[5], size=0.05) +
+             geom_sf(data=PSatt_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"), color=brewer.pal(9,"Greens")[8], size=0.05) +
+             geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+             geom_sf(data=Mercantour_sf,fill=NA,color="black", size=0.2) +
+             geom_sf(data=Attaques_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+             scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                label=c("Depredation\n on sheep"),
+                                name="")+
+             scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2],
+                                        "Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                        "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),
+                               guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                               name="")}
+           else{
+           if("Wolf presence" %in% input$layers & !("Pastoral surfaces" %in% input$layers) & "Depredations" %in% input$layers){
+             st_crs(Maillage_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(Attaques_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot1+
+               geom_sf(data=Maillage_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+               geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+               geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+               geom_sf(data=Attaques_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+               scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")+
+               scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2]),
+                                 guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                                 name="")
+          }
+           else{
+           if(!("Wolf presence" %in% input$layers) & !("Pastoral surfaces" %in% input$layers) & "Depredations" %in% input$layers){
+             st_crs(Attaques_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot1+
+               geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+               geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+               geom_sf(data=Attaques_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+               scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")
+           }
+           else{
+           if(!("Wolf presence" %in% input$layers) & !("Pastoral surfaces" %in% input$layers) & !("Depredations" %in% input$layers)){
+           baseplot1+
+               geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+               geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2)
+           }
+           else{
+           if("Wolf presence" %in% input$layers & "Pastoral surfaces" %in% input$layers & !("Depredations" %in% input$layers)){
+             st_crs(Maillage_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(UP_risk_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(PSatt_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot1+
+              geom_sf(data=Maillage_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", color="Wolf presence", text="Wolf presence")) +
+              geom_sf(data=UP_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", color="Pastoral surface under\ndepredation risk",text="Pastoral surface under\ndepredation risk"), size=0.05) +
+              geom_sf(data=PSatt_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep",color="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),size=0.05) +
+              geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+              geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+              scale_color_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[3],"Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                          "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8],"Pastoral surface"=NA),name="") +
+              scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2],
+                                         "Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                         "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),name="")
+           }
+            else{
+            if("Wolf presence" %in% input$layers & !("Pastoral surfaces" %in% input$layers) & !("Depredations" %in% input$layers)){
+              st_crs(Maillage_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(UP_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot1+
+                geom_sf(data=Maillage_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+                geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+                geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+                scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2]),
+                                  name="")
+           }
+            else{
+            if(!("Wolf presence" %in% input$layers) & "Pastoral surfaces" %in% input$layers & !("Depredations" %in% input$layers)){
+              st_crs(UP_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot1+
+                geom_sf(data=UP_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", color="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), size=0.05) +
+                geom_sf(data=PSatt_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep",color="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),size=0.05)+
+                geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+                geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+                scale_color_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],"Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8],
+                                           "Pastoral surface"=NA),name="") +
+                scale_fill_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],"Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),name="")
+           }
+            else{
+            if(!("Wolf presence" %in% input$layers) & "Pastoral surfaces" %in% input$layers & "Depredations" %in% input$layers){
+              st_crs(Attaques_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(UP_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot1+
+                geom_sf(data=UP_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), color=brewer.pal(9,"Greens")[5], size=0.05) +
+                geom_sf(data=PSatt_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),color=brewer.pal(9,"Greens")[8],size=0.05)+
+                geom_sf(data=hatch(Mercantour_sf,density = 15),size=0.2) +
+                geom_sf(data=Mercantour_sf,fill=NA,color="black",size=0.2) +
+                geom_sf(data=Attaques_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+                scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")+
+               scale_fill_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                          "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),
+                                 guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                                 name="")
+           }
+                     }
+                    }
+                   }
+                  }
+                 }
+                }
+               }
+      
+    }
+  else{ #local scale
+    
+    if("Wolf presence" %in% input$layers & "Pastoral surfaces" %in% input$layers & "Depredations" %in% input$layers){
+            st_crs(MaillageM_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(Attaques_Mercantour_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(UP_M_risk_sf_liste[[as.character(input$x)]]) <- 2154
+            st_crs(PSatt_M_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+            baseplot2 +
+             geom_sf(data=MaillageM_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+             geom_sf(data=UP_M_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), color=brewer.pal(9,"Greens")[5], size=0.05) +
+             geom_sf(data=PSatt_M_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"), color=brewer.pal(9,"Greens")[8], size=0.05) +
+             geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+             scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                label=c("Depredation\n on sheep"),
+                                name="")+
+             scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2],
+                                        "Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                        "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),
+                               guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                               name="")}
+           else{
+           if("Wolf presence" %in% input$layers & !("Pastoral surfaces" %in% input$layers) & "Depredations" %in% input$layers){
+             st_crs(MaillageM_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(Attaques_Mercantour_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot2+
+               geom_sf(data=MaillageM_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+               geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+               scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")+
+               scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2]),
+                                 guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                                 name="")
+          }
+           else{
+           if(!("Wolf presence" %in% input$layers) & !("Pastoral surfaces" %in% input$layers) & "Depredations" %in% input$layers){
+             st_crs(Attaques_Mercantour_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot2+
+               geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+               scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")
+           }
+           else{
+           if(!("Wolf presence" %in% input$layers) & !("Pastoral surfaces" %in% input$layers) & !("Depredations" %in% input$layers)){
+           baseplot2
+           }
+           else{
+           if("Wolf presence" %in% input$layers & "Pastoral surfaces" %in% input$layers & !("Depredations" %in% input$layers)){
+             st_crs(MaillageM_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(UP_M_risk_sf_liste[[as.character(input$x)]]) <- 2154
+             st_crs(PSatt_M_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+             baseplot2+
+              geom_sf(data=MaillageM_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", color="Wolf presence", text="Wolf presence")) +
+              geom_sf(data=UP_M_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", color="Pastoral surface under\ndepredation risk",text="Pastoral surface under\ndepredation risk"), size=0.05) +
+              geom_sf(data=PSatt_M_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep",color="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),size=0.05) +
+              scale_color_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[3],"Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                          "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8],"Pastoral surface"=NA),name="") +
+              scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2],
+                                         "Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                         "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),name="")
+           }
+            else{
+            if("Wolf presence" %in% input$layers & !("Pastoral surfaces" %in% input$layers) & !("Depredations" %in% input$layers)){
+              st_crs(MaillageM_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(UP_M_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_M_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot2+
+                geom_sf(data=MaillageM_Annee_sf_liste[[as.character(input$x)]],aes(fill="Wolf presence", text="Wolf presence"), color=brewer.pal(9,"OrRd")[3]) +
+                scale_fill_manual(values=c("Wolf presence"=brewer.pal(9,"OrRd")[2]),
+                                  name="")
+           }
+            else{
+            if(!("Wolf presence" %in% input$layers) & "Pastoral surfaces" %in% input$layers & !("Depredations" %in% input$layers)){
+              st_crs(UP_M_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_M_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot2+
+                geom_sf(data=UP_M_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", color="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), size=0.05) +
+                geom_sf(data=PSatt_M_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep",color="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),size=0.05)+
+                scale_color_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],"Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8],
+                                           "Pastoral surface"=NA),name="") +
+                scale_fill_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],"Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),name="")
+           }
+            else{
+            if(!("Wolf presence" %in% input$layers) & "Pastoral surfaces" %in% input$layers & "Depredations" %in% input$layers){
+              st_crs(Attaques_Mercantour_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(UP_M_risk_sf_liste[[as.character(input$x)]]) <- 2154
+              st_crs(PSatt_M_Annee_sf_liste[[as.character(input$x)]]) <- 2154
+              baseplot2+
+                geom_sf(data=UP_M_risk_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface under\ndepredation risk", text="Pastoral surface under\ndepredation risk"), color=brewer.pal(9,"Greens")[5], size=0.05) +
+                geom_sf(data=PSatt_M_Annee_sf_liste[[as.character(input$x)]],aes(fill="Pastoral surface with\ndepredated sheep", text="Pastoral surface with\ndepredated sheep"),color=brewer.pal(9,"Greens")[8],size=0.05)+
+                geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(input$x)]],aes(color="Depredation\n on sheep", text="Depredation\n on sheep"),size=1.5)+
+                scale_color_manual(values=c("Depredation\n on sheep"=brewer.pal(11,"Spectral")[1]),
+                                  guide = guide_legend(override.aes = list(linetype = "blank", size=3)),
+                                  name="")+
+               scale_fill_manual(values=c("Pastoral surface under\ndepredation risk"=brewer.pal(9,"Greens")[5],
+                                          "Pastoral surface with\ndepredated sheep"=brewer.pal(9,"Greens")[8]),
+                                 guide = guide_legend(override.aes = list(linetype = "blank", shape = NA)),
+                                 name="")
+           }
+                     }
+                    }
+                   }
+                  }
+                 }
+                }
+               }
+    
+   
+       
+  }
+             })
+```
+
+

@@ -1,0 +1,120 @@
+---
+title: "Supplementary Figure 5"
+author: "Grente et al."
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+    
+```{r global, include=FALSE}
+
+#Packages
+library(sf)
+library(ggplot2)
+library(RColorBrewer)
+library(ggsn)
+library(cowplot)
+library(repmis)
+
+#Data
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Study_area2.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_PrimaryCluster_hetero_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_SecondaryCluster_hetero_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_PrimaryCluster_homo_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_SecondaryCluster_homo_sf_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_UPhotspots2_sf_liste_1.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_UPhotspots2_sf_liste_2.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_UPhotspots2_sf_liste_3.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Results_UPhotspots2_sf_liste_4.RData?raw=true")
+
+Results_UPhotspots2_sf_liste <- c(Results_UPhotspots2_sf_liste_1,Results_UPhotspots2_sf_liste_2,Results_UPhotspots2_sf_liste_3,Results_UPhotspots2_sf_liste_4)
+
+#General setup
+theme_set(theme_bw()) 
+
+# Plots
+Couleur_Cluster_pondere = c("No depredated" = brewer.pal(12,"Set3")[9], "Hotspot" = brewer.pal(11,"BrBG")[2],"No hotspot" = brewer.pal(11,"BrBG")[4])
+Couleur_Cluster_homogene = c("No depredated" = brewer.pal(12,"Set3")[9], "Hotspot" = brewer.pal(11,"BrBG")[10],"No hotspot" = brewer.pal(11,"BrBG")[8])
+
+st_crs(Study_area2) <- 2154
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+Annual locations of depredated pastoral surfaces identified as hotspots (dark colour) or not (light colour) in the study area between 1995 and 2018 according to the Kulldorff statistic used with the observed heterogeneous or simulated homogeneous sheep availability. Pastoral surfaces within the same circles belonged to the same hotspot. Pastoral surfaces which were not depredated (grey) were given for information but were not used in the statistical analysis. 
+
+Move the slider left or right for year selection: 
+```{r}
+sliderInput("x",
+            label = "",
+            min = 1995,
+            max = 2018,
+            value = 2018, # année par défaut
+            step = 1,
+            sep = "") # supprime la virgule dans l'année
+```
+
+```{r}
+radioButtons("kulldorff",
+             "Select the sheep availability used in the Kulldorff statistic analysis:",
+             choices = c("observed (heterogeneous)","simulated (homogeneous)"),
+             selected = "observed (heterogeneous)")
+```
+
+Column {data-width=800}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+
+baseplot <- ggplot() +
+                    geom_sf(data=Study_area2, fill="white", lwd=0.1, color="black") +
+                    ggsn::scalebar(transform = FALSE,dist = 30,dist_unit = "km", model = "WGS84",location="bottomleft",height=0.015,
+                    st.dist=0.018, st.size=5, border.size=0.25,x.min=626129, y.min=6214473, x.max=1077706, y.max=6633766) +
+                    north(scale=0.07,symbol=2,x.min=626129, y.min=6214473, x.max=1077706, y.max=6633766) +
+                    labs(fill="") +
+                    theme_bw() +
+                    theme(axis.title=element_blank(),
+                          axis.text=element_blank(),
+                          axis.ticks=element_blank(), panel.border = element_blank(),
+                          legend.text = element_text(size=13),
+                          legend.position = "right")
+
+
+renderPlot({
+     if(input$kulldorff=="observed (heterogeneous)"){
+       st_crs(Results_UPhotspots2_sf_liste[[as.character(input$x)]]) <- 2154
+       st_crs(Results_PrimaryCluster_hetero_sf_liste[[as.character(input$x)]]) <- 2154
+       if(length(Results_SecondaryCluster_hetero_sf_liste[[as.character(input$x)]])!=0){
+       Secondary_Clusters_hetero_Annee <- do.call(rbind,Results_SecondaryCluster_hetero_sf_liste[[as.character(input$x)]])
+       st_crs(Secondary_Clusters_hetero_Annee) <- 2154}
+          baseplot +
+                geom_sf(data=Results_UPhotspots2_sf_liste[[as.character(input$x)]], aes(fill=CLUSTER_POND), color=NA) +
+                scale_fill_manual(values = Couleur_Cluster_pondere) +
+                geom_sf(data=Results_PrimaryCluster_hetero_sf_liste[[as.character(input$x)]], fill=NA,
+                        color=brewer.pal(11,"BrBG")[2], size=0.5, alpha=0.5) +
+                if(length(Results_SecondaryCluster_hetero_sf_liste[[as.character(input$x)]])!=0){
+                geom_sf(data=Secondary_Clusters_hetero_Annee,
+                        fill=NA, color=brewer.pal(11,"BrBG")[2], size=0.5, alpha=0.5)}}
+   else{
+       st_crs(Results_UPhotspots2_sf_liste[[as.character(input$x)]]) <- 2154
+       st_crs(Results_PrimaryCluster_homo_sf_liste[[as.character(input$x)]]) <- 2154
+       if(length(Results_SecondaryCluster_homo_sf_liste[[as.character(input$x)]])!=0){
+       Secondary_Clusters_homo_Annee <- do.call(rbind,Results_SecondaryCluster_homo_sf_liste[[as.character(input$x)]])
+       st_crs(Secondary_Clusters_homo_Annee) <- 2154}
+          baseplot +
+                    geom_sf(data=Results_UPhotspots2_sf_liste[[as.character(input$x)]], aes(fill=CLUSTER_FICTIF), color=NA) +
+                    scale_fill_manual(values = Couleur_Cluster_homogene)  +
+                    geom_sf(data=Results_PrimaryCluster_homo_sf_liste[[as.character(input$x)]], fill=NA, color=brewer.pal(11,"BrBG")[10], size=0.5, alpha=0.5) +
+                    if(length(Results_SecondaryCluster_homo_sf_liste[[as.character(input$x)]])!=0){
+                    geom_sf(data=Secondary_Clusters_homo_Annee, fill=NA,
+                            color=brewer.pal(11,"BrBG")[10], size=0.5, alpha=0.5)}}
+    })
+```
+
+

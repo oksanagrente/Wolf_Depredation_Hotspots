@@ -1,0 +1,192 @@
+---
+title: "Supplementary Figure 4"
+author: "Grente et al."
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+    
+```{r global, include=FALSE}
+
+#Packages
+library(ggplot2)
+library(RColorBrewer)
+library(ggalt)
+library(repmis)
+
+#Data
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Resultats_Ripley_df_liste.RData?raw=true")
+source_data("https://github.com/oksanagrente/Art_Wolf_Depre_Hotspots/blob/master/Data/Resultats_Ripley_Annee_Mercantour_df_liste.RData?raw=true")
+
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+Annual results between 1995 and 2018 from the Kinhom function (solid yellow line) and from the K-function with the analysis grid defined over the pastoral surfaces under depredation risk (dotted dark blue line) or over the wolf distribution cells (dotted light blue line), against their corresponding control envelopes. Values higher (or lower) than the corresponding envelope’s indicated significant general aggregation (or repulsion) of wolf depredations on sheep over a distance of r km around depredation points. 
+
+Move the slider left or right for year selection: 
+```{r}
+sliderInput("x",
+            label = "",
+            min = 1995,
+            max = 2018,
+            value = 2011, # année par défaut
+            step = 1,
+            sep = "") # supprime la virgule dans l'année
+```
+
+Select the analysis scale to display:
+```{r}
+radioButtons("scale",
+             "",
+             choices = c("Regional scale","Local scale"),
+             selected = "Regional scale")
+```
+
+Select the results to display:
+```{r}
+checkboxGroupInput("functions", label = "", 
+choices = list("Kinhom", "K with pastoral surfaces", "K without pastoral surfaces"), selected=c("Kinhom", "K with pastoral surfaces", "K without pastoral surfaces"))
+```
+
+Column {data-width=1000}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+
+baseplot <- ggplot() +
+            scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+            labs(x="r (km)", y= bquote(italic(K[inhom]~(10^9)))) +
+            theme_bw()+
+            theme(axis.text = element_text(size=15),
+                  legend.text = element_text(size=15),
+                  legend.box.margin = margin(0,0,0,0),
+                  legend.margin=margin(0,0,0,0),
+                  axis.title = element_text(size=15, face="italic"),
+                  axis.title.x = element_text(margin = unit(c(t = 3, r = 0, b = 0, l = 0), "mm")),
+                  axis.ticks = element_line(colour = 'black', size = 0.1),
+                  axis.line = element_line(colour = "black", size=0.1),
+                  panel.border = element_blank(),
+                  panel.grid.minor.x = element_line(colour = NA),
+                  panel.grid.major = element_blank())
+
+renderPlot({
+  if(input$scale == "Regional scale") {
+          if("Kinhom" %in% input$functions & "K with pastoral surfaces" %in% input$functions & "K without pastoral surfaces" %in% input$functions){
+         baseplot+
+           geom_ribbon(data=Resultats_Ripley_df_liste[[as.character(input$x)]],aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=Resultats_Ripley_df_liste[[as.character(input$x)]], aes(y=y,x=x, colour = model, linetype=model),size=1) +
+           scale_fill_manual(values = c("#D8B365","#01665E","#5AB4AC"),
+                     labels = c(bquote(K[inhom]),
+                                bquote(K~with~pastoral~surfaces),bquote(K~without~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#D8B365","#01665E","#5AB4AC"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~with~pastoral~surfaces),bquote(K~without~pastoral~surfaces)),name="") +
+           scale_linetype_manual(values=c("solid","twodash","twodash"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~with~pastoral~surfaces),bquote(K~without~pastoral~surfaces)),name="")}
+        else{
+          if("Kinhom" %in% input$functions & "K with pastoral surfaces" %in% input$functions & !("K without pastoral surfaces" %in% input$functions)){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="Full model"|restricteddata$model=="K null model",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model, linetype=model),size=1) +
+           scale_fill_manual(values = c("#D8B365","#01665E"),
+                     labels = c(bquote(K[inhom]),
+                                bquote(K~with~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#D8B365","#01665E"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~with~pastoral~surfaces)),name="") +
+            scale_linetype_manual(values=c("solid","twodash"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~with~pastoral~surfaces)),name="")
+            }
+        else{
+          if("Kinhom" %in% input$functions & !("K with pastoral surfaces" %in% input$functions) & !("K without pastoral surfaces" %in% input$functions)){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="Full model",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model),size=1,linetype="solid") +
+           scale_fill_manual(values = c("#D8B365"),
+                     labels = c(bquote(K[inhom])),name="") +
+           scale_color_manual(values = c("#D8B365"),
+                      labels = c(bquote(K[inhom])),name="")
+                       }
+        else{
+          if("Kinhom" %in% input$functions & !("K with pastoral surfaces" %in% input$functions) & "K without pastoral surfaces" %in% input$functions){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="Full model"|restricteddata$model=="K null model 2",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model, linetype=model),size=1) +
+           scale_fill_manual(values = c("#D8B365","#5AB4AC"),
+                     labels = c(bquote(K[inhom]),
+                                bquote(K~without~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#D8B365","#5AB4AC"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~without~pastoral~surfaces)),name="") +
+            scale_linetype_manual(values=c("solid","twodash"),
+                      labels = c(bquote(K[inhom]),
+                                 bquote(K~without~pastoral~surfaces)),name="")}
+       else{
+          if(!("Kinhom" %in% input$functions) & "K with pastoral surfaces" %in% input$functions & "K without pastoral surfaces" %in% input$functions){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="K null model"|restricteddata$model=="K null model 2",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model),size=1,linetype="twodash") +
+           scale_fill_manual(values = c("#01665E","#5AB4AC"),
+                     labels = c(bquote(K~with~pastoral~surfaces),
+                                bquote(K~without~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#01665E","#5AB4AC"),
+                      labels = c(bquote(K~with~pastoral~surfaces),
+                                 bquote(K~without~pastoral~surfaces)),name="")}
+  else{
+          if(!("Kinhom" %in% input$functions) & "K with pastoral surfaces" %in% input$functions & !("K without pastoral surfaces" %in% input$functions)){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="K null model",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model),size=1,linetype="twodash") +
+           scale_fill_manual(values = c("#01665E"),
+                     labels = c(bquote(K~with~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#01665E"),
+                      labels = c(bquote(K~with~pastoral~surfaces)),name="")
+      }
+  else{
+          if(!("Kinhom" %in% input$functions) & !("K with pastoral surfaces" %in% input$functions) & "K without pastoral surfaces" %in% input$functions){
+          restricteddata <- Resultats_Ripley_df_liste[[as.character(input$x)]]
+          restricteddata <- restricteddata[restricteddata$model=="K null model 2",]
+          baseplot+
+           geom_ribbon(data=restricteddata,aes(ymin=lower, ymax=upper, x=x,fill = model),alpha=0.4, size=0.8)+
+           geom_line(data=restricteddata, aes(y=y,x=x, colour = model),size=1,linetype="twodash") +
+           scale_fill_manual(values = c("#5AB4AC"),
+                     labels = c(bquote(K~without~pastoral~surfaces)),name="") +
+           scale_color_manual(values = c("#5AB4AC"),
+                      labels = c(bquote(K~without~pastoral~surfaces)),name="")
+
+         }
+         }
+       }
+       }
+      }
+     }
+    }
+  }
+  else{baseplot+
+           geom_ribbon(data=Resultats_Ripley_Annee_Mercantour_df_liste[[as.character(input$x)]],aes(ymin=lower, ymax=upper, x=x),
+                       fill="#D8B365", alpha=0.7, size=0.8)+
+           geom_line(data=Resultats_Ripley_Annee_Mercantour_df_liste[[as.character(input$x)]], aes(y=y,x=x),
+                     color="#D8B365", size=1,linetype="twodash") }
+})
+```
+
+
