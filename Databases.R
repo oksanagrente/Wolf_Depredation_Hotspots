@@ -56,7 +56,7 @@ Indices_Attaques <- Attaques_sf[c("Annee_bio","E_RGF","N_RGF")] %>% #prepare fil
                        rename(X=E_RGF,Y=N_RGF)
 row.names(Indices_Attaques) <- NULL #reset row.id number
 
-  # Select only atatcks on sheep
+  # Select only attacks on sheep
 Attaques_sf <- Attaques_sf[Attaques_sf$Sp.ov.bv.cn.=="Ov" | Attaques_sf$Sp.ov.bv.cn.=="" 
                           | Attaques_sf$Sp.ov.bv.cn.==" O" | Attaques_sf$Sp.ov.bv.cn.=="Oc"
                           | Attaques_sf$Sp.ov.bv.cn.=="Of" | Attaques_sf$Sp.ov.bv.cn.=="Oq",]
@@ -99,7 +99,7 @@ st_geometry(AP1996_sf) <- AP1996_sf$geometry
 AP1996_sf <- AP1996_sf[AP1996_sf$effocpat >0,] 
 
   # Calculation of density
-AP1996_sf$SURFACE <- as.numeric(st_area(AP1996_sf)*1e-06) # in km²
+AP1996_sf$SURFACE <- as.numeric(st_area(AP1996_sf)*1e-06) # in km?
 AP1996_sf$DENSITE_OV <- round(AP1996_sf$effocpat/AP1996_sf$SURFACE) # in ind.km-2
 
   # Calculation of grazing time 
@@ -135,8 +135,8 @@ ZP2012_sf <- ZP2012_sf[ZP2012_sf$USAGE == "O",] #Only utilised zones
 ZP2012_sf <- ZP2012_sf[ZP2012_sf$CH_MAX_OV >0 & !is.na(ZP2012_sf$CH_MAX_OV),] #Only zones with grazing sheep
 
   # Calculation of density
-UP2012_sf$SURFACE <- as.numeric(st_area(UP2012_sf)*1e-6) # in km²
-ZP2012_sf$SURFACE <- as.numeric(st_area(ZP2012_sf)*1e-6) # in km²
+UP2012_sf$SURFACE <- as.numeric(st_area(UP2012_sf)*1e-6) # in km?
+ZP2012_sf$SURFACE <- as.numeric(st_area(ZP2012_sf)*1e-6) # in km?
 UP2012_sf$DENSITE_OV <- round(UP2012_sf$EF_OV_PAT/UP2012_sf$SURFACE) # in ind.km-2
 ZP2012_sf$DENSITE_OV <- round(ZP2012_sf$CH_MAX_OV/ZP2012_sf$SURFACE) # in ind.km-2
   
@@ -319,8 +319,8 @@ Maillage_Loup_19962018_sf_fonction <- function(x){
     #Extract these mesh squares from the initial mesh
   Maillage_Loup_sf <- Maillage_sf[c(Maillage_pres_reg_pos,Maillage_pres_occ_pos),]
   Maillage_Loup_sf["PRESENCE_L"] <- NA
-  Maillage_Loup_sf[Maillage_Loup_sf$FID_france %in% Maillage_pres_reg_ID,"PRESENCE_L"] <- "Présence régulière"
-  Maillage_Loup_sf[Maillage_Loup_sf$FID_france %in% Maillage_pres_occ_ID,"PRESENCE_L"] <- "Présence occasionnelle"
+  Maillage_Loup_sf[Maillage_Loup_sf$FID_france %in% Maillage_pres_reg_ID,"PRESENCE_L"] <- "Pr?sence r?guli?re"
+  Maillage_Loup_sf[Maillage_Loup_sf$FID_france %in% Maillage_pres_occ_ID,"PRESENCE_L"] <- "Pr?sence occasionnelle"
   Maillage_Loup_19962018_sf_liste[[x]] <- Maillage_Loup_sf
   }
 Maillage_Loup_19962018_sf_liste <- lapply(1996:2018, function(x) Maillage_Loup_19962018_sf_fonction(x))
@@ -347,8 +347,8 @@ Maillage_Loup_1995_sf_fonction <- function(x){
   #Extract these mesh squares from the initial mesh
   Maillage_Loup_1995_sf <- Maillage_sf[c(Maillage_pres_reg_pos,Maillage_pres_occ_pos),]
   Maillage_Loup_1995_sf["PRESENCE_L"] <- NA
-  Maillage_Loup_1995_sf[Maillage_Loup_1995_sf$FID_france %in% Maillage_pres_reg_ID,"PRESENCE_L"] <- "Présence régulière"
-  Maillage_Loup_1995_sf[Maillage_Loup_1995_sf$FID_france %in% Maillage_pres_occ_ID,"PRESENCE_L"] <- "Présence occasionnelle"
+  Maillage_Loup_1995_sf[Maillage_Loup_1995_sf$FID_france %in% Maillage_pres_reg_ID,"PRESENCE_L"] <- "Pr?sence r?guli?re"
+  Maillage_Loup_1995_sf[Maillage_Loup_1995_sf$FID_france %in% Maillage_pres_occ_ID,"PRESENCE_L"] <- "Pr?sence occasionnelle"
   Maillage_Loup_1995_sf_liste[[x]] <- Maillage_Loup_1995_sf
   }
 Maillage_Loup_1995_sf_liste <- lapply(1995:1995, function(x) Maillage_Loup_1995_sf_fonction(x))
@@ -366,7 +366,7 @@ save(Maillage_Loup_sf_liste,file="Maillage_Loup_sf_liste.RData")
 
 UP_Loup_reg_sf_fonction <- function(x) {
   UP_Loup_reg_sf_liste <- list()
-  Maillage_Loup_pres_reg_sf <- Maillage_Loup_sf_liste[[as.character(x)]][Maillage_Loup_sf_liste[[as.character(x)]]$PRESENCE_L=="Présence régulière",]
+  Maillage_Loup_pres_reg_sf <- Maillage_Loup_sf_liste[[as.character(x)]][Maillage_Loup_sf_liste[[as.character(x)]]$PRESENCE_L=="Pr?sence r?guli?re",]
   if(x %in% c(1995:2005)){UP_sf <- UP1996_sf}else{UP_sf <- UP2012_sf}
   UP_Loup_reg_logical <- st_intersects(UP_sf,Maillage_Loup_pres_reg_sf) %>% lengths > 0
   UP_Loup_reg_sf <- UP_sf[c(which(UP_Loup_reg_logical)),]
@@ -381,7 +381,7 @@ save(UP_Loup_reg_sf_liste,file="UP_Loup_reg_sf_liste.RData")
 
 UP_Loup_occ_sf_fonction <- function(x) {
   UP_Loup_occ_sf_liste <- list()
-  Maillage_Loup_pres_occ_sf <- Maillage_Loup_sf_liste[[as.character(x)]][Maillage_Loup_sf_liste[[as.character(x)]]$PRESENCE_L=="Présence occasionnelle",]
+  Maillage_Loup_pres_occ_sf <- Maillage_Loup_sf_liste[[as.character(x)]][Maillage_Loup_sf_liste[[as.character(x)]]$PRESENCE_L=="Pr?sence occasionnelle",]
   if(x %in% c(1995:2005)){UP_sf <- UP1996_sf}else{UP_sf <- UP2012_sf}
   UP_Loup_occ_logical <- st_intersects(UP_sf,Maillage_Loup_pres_occ_sf) %>% lengths > 0
   UP_Loup_occ_sf <- UP_sf[c(which(UP_Loup_occ_logical)),]
