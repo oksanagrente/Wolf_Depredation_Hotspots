@@ -204,7 +204,7 @@ save(Cluster2_UPpredatees_Effectifhomogene_liste,file="Cluster2_UPpredatees_Effe
 
 Annees <- c(1995:2018)
 
-# Recover pastoral data for PS into hotspots
+## Recover pastoral data for PS into hotspots
 Results_UPhotspots_sf_fonction <- function(x){
   Results_UPhotspots_sf_liste <- list()
   UP_Loup_annee_sf <- UP_Loup_sf_liste[[as.character(x)]]
@@ -225,43 +225,24 @@ Results_UPhotspots_sf_fonction <- function(x){
 Results_UPhotspots_sf_liste <- lapply(Annees, function(x) Results_UPhotspots_sf_fonction(x))
 names(Results_UPhotspots_sf_liste) <- Annees
 
-# Analyse mean flock size of PS into hotspot or not
-Eff_pond_hotspot <- rep(NA,length(Annees))
-Eff_homo_hotspot <- rep(NA,length(Annees))
-Eff_pond_nonhotspot <- rep(NA,length(Annees))
-Eff_homo_nonhotspot <- rep(NA,length(Annees))
+## Number of pastoral surfaces per year in hotspots
+
+Size_PrimaryCluster <- unname(sapply(Cluster_UPpredatees_Effectifpondere_liste,length))
+
+Size_SecondaryClusters <- lapply(Cluster2_UPpredatees_Effectifpondere_liste, `[`, , 1)
+Size_SecondaryClusters <- sapply(Size_SecondaryClusters,table)
+Size_SecondaryClusters <- sapply(Size_SecondaryClusters,unname)
 
 for(i in 1:length(Annees)){
-  Resultat_annee <- Results_UPhotspots_sf_liste[[as.character(Annees[i])]]
-  st_geometry(Resultat_annee) <- NULL
-  Eff_pond_hotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_POND=="Hotspot","EFF_OV"])
-  Eff_homo_hotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="Hotspot","EFF_OV"])
-  Eff_pond_nonhotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_POND=="No hotspot","EFF_OV"])
-  Eff_homo_nonhotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="No hotspot","EFF_OV"])}
+  Size_SecondaryClusters[[i]] <- c(Size_PrimaryCluster[i],Size_SecondaryClusters[[i]]) 
+}
 
-mean(Eff_pond_hotspot) ; sd(Eff_pond_hotspot)
-mean(Eff_pond_nonhotspot) ; sd(Eff_pond_nonhotspot)
-mean(Eff_homo_hotspot) ; sd(Eff_homo_hotspot)
+sapply(Size_SecondaryClusters,mean)
+sapply(Size_SecondaryClusters,sd)
 
-# Analyse flock size of PS into hotspot or not
-Nb_pond_hotspot <- rep(NA, length(Annees))
-Nb_homo_hotspot <- rep(NA,length(Annees))
-Nb_pond_nonhotspot <- rep(NA,length(Annees))
-Nb_homo_nonhotspot <- rep(NA,length(Annees))
+## Tests for differences between pond and homo (size, time and nb of attacks)
 
-for(i in 1:length(Annees)){
-  Resultat_annee <- Results_UPhotspots_sf_liste[[as.character(Annees[i])]]
-  st_geometry(Resultat_annee) <- NULL
-  Nb_pond_hotspot[i] <- length(Resultat_annee[Resultat_annee$CLUSTER_POND=="Hotspot","EFF_OV"]) 
-  Nb_homo_hotspot[i] <- length(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="Hotspot","EFF_OV"])
-  Nb_pond_nonhotspot[i] <- length(Resultat_annee[Resultat_annee$CLUSTER_POND=="No hotspot","EFF_OV"])
-  Nb_homo_nonhotspot[i] <- length(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="No hotspot","EFF_OV"])}
-
-Nbsheep_pond_hotspot <- list()
-Nbsheep_homo_hotspot <- list()
-Nbsheep_pond_nonhotspot <- list()
-Nbsheep_homo_nonhotspot <- list()
-
+  # Analyse flock size of PS into hotspot or not
 for(i in 1:length(Annees)){
   Resultat_annee <- Results_UPhotspots_sf_liste[[as.character(Annees[i])]]
   st_geometry(Resultat_annee) <- NULL
@@ -279,25 +260,7 @@ mean(Nbsheep_pond_hotspot) ; sd(Nbsheep_pond_hotspot)
 mean(Nbsheep_homo_hotspot) ; sd(Nbsheep_homo_hotspot)
 mean(Nbsheep_pond_nonhotspot) ; sd(Nbsheep_pond_nonhotspot)
 
-# Analyse mean grazing time of PS into hotspot
-Temps_pond_hotspot <- rep(NA,length(Annees))
-Temps_homo_hotspot <- rep(NA,length(Annees))
-Temps_pond_nohotspot <- rep(NA,length(Annees))
-Temps_homo_nohotspot <- rep(NA,length(Annees))
-
-for(i in 1:length(Annees)){
-  Resultat_annee <- Results_UPhotspots_sf_liste[[as.character(Annees[i])]]
-  st_geometry(Resultat_annee) <- NULL
-  Temps_pond_hotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_POND=="Hotspot","DUREE_PAT"])
-  Temps_homo_hotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="Hotspot","DUREE_PAT"])
-  Temps_pond_nohotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_POND=="No hotspot","DUREE_PAT"])
-  Temps_homo_nohotspot[i] <- mean(Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="No hotspot","DUREE_PAT"])}
-
-mean(Temps_pond_hotspot) ; sd(Temps_pond_hotspot)
-mean(Temps_pond_nohotspot) ; sd(Temps_pond_nohotspot)
-mean(Temps_homo_hotspot) ; sd(Temps_homo_hotspot)
-
-# Analyse grazing time of PS into hotspot or not
+  # Analyse grazing time of PS into hotspot or not
 Temps_pond_hotspot <- list()
 Temps_homo_hotspot <- list()
 Temps_pond_nohotspot <- list()
@@ -321,7 +284,31 @@ mean(Temps_homo_hotspot) ; sd(Temps_homo_hotspot)
 mean(Temps_pond_nohotspot) ; sd(Temps_pond_nohotspot)
 mean(Temps_homo_nohotspot) ; sd(Temps_homo_nohotspot)
 
-# Improved t-test function
+  # Analysis of the number of attacks
+Att_pond_hotspot <- list()
+Att_homo_hotspot <- list()
+Att_pond_nohotspot <- list()
+Att_homo_nohotspot <- list()
+
+for(i in 1:length(Annees)){
+  Resultat_annee <- Results_UPhotspots_sf_liste[[as.character(Annees[i])]]
+  st_geometry(Resultat_annee) <- NULL
+  Att_pond_hotspot[[i]] <- Resultat_annee[Resultat_annee$CLUSTER_POND=="Hotspot","ATTAQUES"]
+  Att_homo_hotspot[[i]] <- Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="Hotspot","ATTAQUES"]
+  Att_pond_nohotspot[[i]] <- Resultat_annee[Resultat_annee$CLUSTER_POND=="No hotspot","ATTAQUES"]
+  Att_homo_nohotspot[[i]] <- Resultat_annee[Resultat_annee$CLUSTER_FICTIF=="No hotspot","ATTAQUES"]}
+
+Att_pond_hotspot <- unlist(Att_pond_hotspot)
+Att_homo_hotspot <- unlist(Att_homo_hotspot)
+Att_pond_nohotspot <- unlist(Att_pond_nohotspot)
+Att_homo_nohotspot <- unlist(Att_homo_nohotspot)
+
+mean(Att_pond_hotspot) ; sd(Att_pond_hotspot)
+mean(Att_homo_hotspot) ; sd(Att_homo_hotspot)
+mean(Att_pond_nohotspot) ; sd(Att_pond_nohotspot)
+mean(Att_homo_nohotspot) ; sd(Att_homo_nohotspot)
+
+  # Improved t-test function
 rquery.t.test<-function(x, y = NULL, paired = FALSE, 
                         graph = TRUE, ...)
 {
@@ -384,6 +371,7 @@ rquery.t.test<-function(x, y = NULL, paired = FALSE,
   res <- t.test(x, y, paired=paired, var.equal=var.equal, ...)
   return(res)
 }
+
 normaTest<-function(x, graph=TRUE, 
                     hist.title="Histogram", 
                     qq.title="Normal Q-Q Plot",...)
@@ -415,17 +403,7 @@ normaTest<-function(x, graph=TRUE,
   return(shapiro.p)
 }
 
-# Comparison between PS within hotspots or outside
-
-rquery.t.test(Nbsheep_pond_hotspot, Nbsheep_pond_nonhotspot[0:4900], paired=FALSE) #x-y normally distributed
-library(nortest)
-t.test(Nbsheep_pond_hotspot, Nbsheep_pond_nonhotspot, paired = FALSE, alternative="less") #significant
-wilcox.test(Nbsheep_pond_hotspot, Nbsheep_pond_nonhotspot, paired = FALSE, alternative = "less") #significant
-
-rquery.t.test(Temps_pond_hotspot, Temps_pond_nohotspot, paired=FALSE) #x-y not normally distributed
-wilcox.test(Temps_pond_hotspot, Temps_pond_nohotspot, paired = FALSE, alternative = "less") #significant
-
-# Comparison between analysis with sheep availability and the one without
+  # Comparison between analysis with sheep availability and the one without
 
 rquery.t.test(Nbsheep_pond_hotspot, Nbsheep_homo_hotspot, paired=FALSE) #x-y normally distributed
 wilcox.test(Nbsheep_pond_hotspot, Nbsheep_homo_hotspot, paired = FALSE, alternative = "less") #significant
@@ -433,10 +411,5 @@ wilcox.test(Nbsheep_pond_hotspot, Nbsheep_homo_hotspot, paired = FALSE, alternat
 rquery.t.test(Temps_pond_hotspot, Temps_homo_hotspot, paired=FALSE) #x-y not normally distributed
 wilcox.test(Temps_pond_hotspot, Temps_homo_hotspot, paired=FALSE, alternative="less") #significant
 
-#wilcox.test(Temps_pond_hotspot, Temps_homo_hotspot, paired = FALSE, alternative = "less") #significant
-
-# rquery.t.test(Eff_homo_hotspot, Eff_homo_nonhotspot, paired=FALSE) #x-y normally distributed
-# t.test(Eff_homo_hotspot, Eff_homo_nonhotspot, paired=FALSE) #significant
-
-rquery.t.test(Temps_homo_hotspot, Temps_homo_nohotspot, paired=FALSE) #x-y not normally distributed
-wilcox.test(Temps_homo_hotspot, Temps_homo_nohotspot, paired=FALSE,alternative="greater") #significant
+rquery.t.test(Att_pond_hotspot, Att_homo_hotspot, paired=FALSE) #x-y not normally distributed
+wilcox.test(Att_pond_hotspot, Att_homo_hotspot, paired=FALSE, alternative="less") #significant
