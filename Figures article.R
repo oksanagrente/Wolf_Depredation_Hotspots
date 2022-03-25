@@ -45,7 +45,7 @@ hatch <- function(x, density) {
 
 ########################################### Data ###############################################
 
-setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Data")
+setwd("Data")
   load("Attaques_Mercantour_sf_liste.RData")
   load("UP1996_sf.RData")
   load("UP2012_sf.RData")
@@ -78,7 +78,6 @@ setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Data")
     st_crop(france_departements)
 
 ########################################### General setup ###############################################
-setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Figures")
 theme_set(theme_bw()) 
 Annees <- c(1995:2018)
 
@@ -96,324 +95,6 @@ France_cropped <- st_union(st_crop(france_departements,Study_area))
 Europe_cropped <- st_crop(Europe,france_departements)
 
 ############################################## Figure 1 ###############################################
-
-ggplot() + 
-  geom_sf(data=Europe_cropped, size=0.01) +
-  geom_sf(data=Study_area2, fill="white", color="black", size=0.20) +
-  geom_sf(data=Mercantour_tot,fill="white",color="black", size=0.2) +
-  geom_sf(data=hatch(Mercantour_tot,density = 7),size=0.2) +
-  ggsn::scalebar(data=Europe_cropped,transform = FALSE,dist = 100,dist_unit = "km", model = "WGS84",
-                 st.dist=0.035, st.size=1.5, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
-  north(data=Europe_cropped,location="topright",scale=0.10,symbol=2) +
-  theme(axis.title = element_blank(),panel.border = element_blank(),
-        axis.text = element_text(size=5),text = element_text(family="Segoe UI"),axis.ticks = element_blank())
-
-ggsave("Figure1.png", device="png", width=70, height= 80, units=c("mm"))
-
-############################################## Figure 2 ###############################################
-
-############## Number of sheep ############## 
-
-Effectifs_classes <- cut(UP2012_sf$EFF_OV, 
-                         breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf), 
-                         labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"), 
-                         right = FALSE)
-
-UP2012_sf$Eff_Class <- Effectifs_classes
-
-Figure_Effectifs <-   ggplot() +
-  geom_sf(data=Study_area2, fill="white", size=0.01) +
-  geom_sf(data=Mercantour_tot,fill="white",color="black",size=0.3) +
-  geom_sf(data=hatch(Mercantour_tot,density = 15),size=0.3) +
-  geom_sf(data=UP2012_sf, aes(fill=Eff_Class, color=Eff_Class), size=0.3) +
-  scale_fill_brewer(palette="Greens") +
-  scale_color_brewer(palette="Greens") +
-  labs(fill="Number of \nsheep", color="Number of \nsheep") +
-  ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
-                 st.dist=0.035, st.size=2, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
-  theme(axis.title=element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(), panel.border = element_blank(),
-        text = element_text(family="Segoe UI"),
-        legend.key.size = unit(0.03,"npc"),
-        legend.text = element_text(size=7),
-        legend.title = element_text(size=9),
-        legend.position = "right") 
-
-############## Grazing time ############## 
-
-Figure_Duree <-   ggplot() +
-  geom_sf(data=Study_area2, fill="white", size=0.01) +
-  geom_sf(data=Mercantour_tot,fill="white",color="black",size=0.3) +
-  geom_sf(data=hatch(Mercantour_tot,density = 15),size=0.3) +
-  geom_sf(data=UP2012_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
-  scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
-  scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
-  north(data=Study_area,location="topright",scale=0.125,symbol=2) +
-  labs(fill="Sheep grazing \ntime (days)",color="Sheep grazing \ntime (days)") +
-  theme(axis.title=element_blank(),
-        axis.text=element_blank(),
-        axis.ticks=element_blank(), panel.border = element_blank(),
-        text = element_text(family="Segoe UI"),
-        legend.key.size = unit(0.03,"npc"),
-        legend.text = element_text(size=7),
-        legend.title = element_text(size=9),
-        legend.spacing.x = unit(0.5, 'cm')) 
-
-FinalFigure <- plot_grid(Figure_Effectifs, Figure_Duree, labels = c('A', 'B'), nrow = 1, label_fontfamily = "Segoe UI",
-                        label_size = 15, scale=0.9, label_x = 0.12, label_fontface="plain")
-
-ggsave("Figure2.png", device="png", width=210, height= 70, units=c("mm"))
-
-############################################## Figure 3 ###############################################
-
-############## National scale #############
-
-#Proportion of wolf distribution
-Nb_Cell_tot <- length(unique(as.data.frame(st_intersects(Study_area2,Maillage_sf))$col.id))
-Nb_Cell <- c(rep(NA,24))
-for (i in 1:24){Nb_Cell[i] <- nrow(Maillage_Loup_sf_liste[[as.character(Annees[i])]])}
-Prop_Colo <- ceiling(Nb_Cell/Nb_Cell_tot*100)
-
-#Number and proportion of PS at risk 
-Nb_PS_risk <- c(rep(NA,24))
-for (i in 1:24){Nb_PS_risk[i] <- nrow(UP_Loup_sf_liste[[as.character(Annees[i])]])}
-Nb_PS_tot <- c(rep(nrow(UP1996_sf),11),rep(nrow(UP2012_sf),13))
-Prop_PS_risk <- ceiling(Nb_PS_risk/Nb_PS_tot*100)
-
-#Number and proportion of attacked PS 
-PS_attacked_fonction <- function(x){  
-  Nb_PS_Att <- c()
-  Attaques_Annee_sf <- Attaques_sf_liste[[as.character(x)]]
-  SP_Annee_sf <- UP_Loup_sf_liste[[as.character(x)]]
-  SP_Att_df <- as.data.frame(st_intersects(Attaques_Annee_sf,SP_Annee_sf)) 
-  Nb_PS_Att[x] <- length(unique(SP_Att_df$col.id))}
-Nb_PS_Att <- sapply(1995:2018, function(x) PS_attacked_fonction(x))
-Prop_PS_Att <- ceiling(Nb_PS_Att/Nb_PS_risk*100)
-
-#Number of attacks 
-Nb_Att <- c(rep(NA,24))
-for (i in 1:24){Nb_Att[i] <- nrow(Attaques_sf_liste[[as.character(Annees[i])]])}
-
-#Differences  
-# Diff_df <- data.frame(
-#   Diff_growth_colo = Prop_Colo-lag(Prop_Colo),
-#   Diff_growth_risk = Prop_PS_risk - lag(Prop_PS_risk),
-#   Diff_growth_PSatt = Prop_PS_Att - lag(Prop_PS_Att),
-#   Diff_growth_Att = Nb_Att - lag(Nb_Att))
-# Growth_rate_nat_df <- data.frame(
-#   Annees=Annees,
-#   Rate_colo = Diff_df$Diff_growth_colo/Prop_Colo * 100,
-#   Rate_percent_risk = Diff_df$Diff_growth_risk/Prop_PS_risk * 100,
-#   Rate_percent_PSatt = Diff_df$Diff_growth_PSatt/Prop_PS_Att * 100,
-#   Rate_percent_NbAtt = Diff_df$Diff_growth_Att/Nb_Att * 100)
-# Growth_rate_nat_df <- gather(data=Growth_rate_nat_df, "Type", "Value",-Annees)
-# Growth_rate_nat_df$Type <- factor(Growth_rate_nat_df$Type, levels = c("Rate_percent_risk", "Rate_percent_PSatt","Rate_percent_NbAtt"))
-
-#Data.frame of results
-Nb_nat_df <- data.frame(
-  Annees=Annees,
-  Prop_Colo = Prop_Colo,
-  Prop_PS_risk = Prop_PS_risk,
-  Prop_PS_Att = Prop_PS_Att,
-  Nb_Att = Nb_Att/25) #Divided for the secondary axis
-Nb_nat_df <- gather(data=Nb_nat_df, "Type", "Value",-Annees)
-Nb_nat_df$Type <- factor(Nb_nat_df$Type, levels = c("Prop_Colo", "Prop_PS_risk","Prop_PS_Att","Nb_Att"))
-# Growth_rate_nat_df$Raw_nb <- Nb_nat_df$Value
-
-#Plot national scale
-PropandNumbers_plot <- ggplot(data=Nb_nat_df,aes(x=Annees, y=Value,color=Type)) +
-  geom_xspline(size=0.9) +
-  scale_color_manual(values=c(brewer.pal(9,"OrRd")[3], brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
-                              brewer.pal(11,"Spectral")[1]), labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
-                                                                      "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
-                     name="") +
-  # scale_linetype_manual(values=c("solid","solid","solid","solid"), labels=c("Area recolonised\n by wolves","PS\nunder depredation risk",
-  #                                                                     "PS\nwith depredations", "Number of\ndepredations"),
-  #                       name="")+
-  scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),
-                     labels=as.character(c(seq(from=1996, to=2018, by=2))),
-                     expand = c(0.015,0)) +
-  scale_y_continuous("Proportion (%)", sec.axis = sec_axis(~ . * 25, name = "Number of depredations"),
-                     limits = c(0,100)) +
-  labs(x = "") +
-  theme_bw() +
-  theme(axis.text = element_text(size = 10, family="Segoe UI"),
-        legend.text = element_text(size=10),
-        text = element_text(size = 10),
-        axis.title.x = element_blank(),
-        axis.ticks = element_line(colour = 'black', size = 0.1),
-        axis.line = element_line(colour = "black", size = 0.1),
-        axis.text.x = element_text(angle=45,vjust=0.6),
-        axis.title.y.left = element_text(size = 13, face = "italic", family="Segoe UI",
-                                         margin = unit(c(0, 3, 0, 0), "mm")),
-        axis.line.y.right = element_line(color = brewer.pal(11,"Spectral")[1],size=0.65), 
-        axis.ticks.y.right = element_line(color = brewer.pal(11,"Spectral")[1]),
-        axis.text.y.right = element_text(color = brewer.pal(11,"Spectral")[1], family="Segoe UI"),
-        axis.title.y.right = element_text(color = brewer.pal(11,"Spectral")[1],margin = unit(c(0, 0, 0, 3), "mm"),
-                                          size = 13, face = "italic", family="Segoe UI"),
-        panel.border = element_blank(),
-        panel.grid.minor.x = element_line(colour = NA),
-        panel.grid.major = element_blank())
-
-# Growthrate_plot <- ggplot(data=Growth_rate_nat_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
-# geom_rect(aes(xmin= -Inf,
-#               xmax = +Inf,
-#               ymin = -Inf,
-#               ymax = 0), fill = brewer.pal(9,"Greys")[2], alpha = 0.1, color=NA) +
-#   geom_xspline(size=0.9) +
-#   scale_color_manual(values=c(brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
-#                               brewer.pal(11,"Spectral")[1])) +
-#   scale_linetype_manual(values=c("solid","twodash","solid"))+
-#   scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),labels=as.character(c(seq(from=1996, to=2018, by=2))),expand = c(0.015,0)) +
-#   labs(y = "Growth rate (%)", x = "") +
-#   theme_bw() +
-#   theme(axis.text = element_text(size = 10, family="Segoe UI"),
-#         legend.position = "none",
-#         text = element_text(size = 10),
-#         axis.title.y = element_text(size = 13, face = "italic", family="Segoe UI"),
-#         axis.title.x = element_blank(),
-#         axis.ticks = element_line(colour = 'black', size = 0.1),
-#         axis.line = element_line(colour = "black", size = 0.1),
-#         axis.text.x = element_text(angle=45,vjust=0.6),
-#         panel.background = element_blank(),
-#         panel.border = element_blank(),
-#         panel.grid.minor.x = element_line(colour = NA),
-#         panel.grid.major = element_blank())
-
-############## Mercantour scale #############
-
-#Proportion of wolf distribution
-Nb_Cell_tot_Mercantour <- length(unique(as.data.frame(st_intersects(Mercantour_tot,Maillage_sf))$col.id))
-Nb_Cell_Mercantour <- c(rep(NA,24))
-for (i in 1:24){Nb_Cell_Mercantour[i] <- nrow(Maillage_Loup_Mercantour_sf_liste[[as.character(Annees[i])]])}
-Prop_Colo_Mercantour <- ceiling(Nb_Cell_Mercantour/Nb_Cell_tot_Mercantour*100)
-
-#Number and proportion of PS at risk in Mercantour
-Nb_PS_risk_Mercantour <- c(rep(NA,24))
-for (i in 1:24){Nb_PS_risk_Mercantour[i] <- nrow(UP_Loup_Mercantour_sf_liste[[as.character(Annees[i])]])}
-Nb_PS_tot_Mercantour <- c(rep(nrow(UP1996_Mercantour_sf),11),rep(nrow(UP2012_Mercantour_sf),13))
-Prop_PS_risk_Mercantour <- ceiling(Nb_PS_risk_Mercantour/Nb_PS_tot_Mercantour*100)
-
-#Number and proportion of attacked PS in Mercantour
-PS_attacked_Mercantour_fonction <- function(x){  
-  Nb_PS_Att_Mercantour <- c()
-  Attaques_Annee_sf <- Attaques_Mercantour_sf_liste[[as.character(x)]]
-  SP_Annee_sf <- UP_Loup_Mercantour_sf_liste[[as.character(x)]]
-  SP_Att_df <- as.data.frame(st_intersects(Attaques_Annee_sf,SP_Annee_sf)) 
-  Nb_PS_Att_Mercantour[x] <- length(unique(SP_Att_df$col.id))}
-Nb_PS_Att_Mercantour <- sapply(1995:2018, function(x) PS_attacked_Mercantour_fonction(x))
-Prop_PS_Att_Mercantour <- ceiling(Nb_PS_Att_Mercantour/Nb_PS_risk_Mercantour*100)
-
-#Number of attacks 
-Nb_Att_Mercantour <- c(rep(NA,24))
-for (i in 1:24){Nb_Att_Mercantour[i] <- nrow(Attaques_Mercantour_sf_liste[[as.character(Annees[i])]])}
-
-# #Differences
-# Diff_df <- data.frame(
-#   Diff_growth_risk_Mercantour = Prop_PS_risk_Mercantour - lag(Prop_PS_risk_Mercantour),
-#   Diff_growth_PSatt_Mercantour = Prop_PS_Att_Mercantour - lag(Prop_PS_Att_Mercantour),
-#   Diff_growth_Att_Mercantour = Nb_Att_Mercantour - lag(Nb_Att_Mercantour)) 
-# #Restricted scale
-# Growth_rate_Mercantour_df <- data.frame(
-#   Annees=Annees,
-#   Rate_percent_risk_Mercantour = Diff_df$Diff_growth_risk_Mercantour/Prop_PS_risk_Mercantour * 100,
-#   Rate_percent_PSatt_Mercantour = Diff_df$Diff_growth_PSatt_Mercantour/Prop_PS_Att_Mercantour * 100,
-#   Rate_percent_NbAtt_Mercantour = Diff_df$Diff_growth_Att_Mercantour/Nb_Att_Mercantour * 100)
-# Growth_rate_Mercantour_df <- gather(data=Growth_rate_Mercantour_df, "Type", "Value",-Annees)
-# Growth_rate_Mercantour_df$Type <- factor(Growth_rate_Mercantour_df$Type, levels = c("Rate_percent_risk_Mercantour", 
-#                                                                                     "Rate_percent_PSatt_Mercantour",
-#                                                                                     "Rate_percent_NbAtt_Mercantour"))
-
-#Data.frame of result
-Nb_Mercantour_df <- data.frame(
-  Annees=Annees,
-  Prop_Colo_Mercantour = Prop_Colo_Mercantour,
-  Prop_PS_risk_Mercantour = Prop_PS_risk_Mercantour,
-  Prop_PS_Att_Mercantour = Prop_PS_Att_Mercantour,
-  Nb_Att_Mercantour = Nb_Att_Mercantour/25)
-Nb_Mercantour_df <- gather(data=Nb_Mercantour_df, "Type", "Value",-Annees)
-Nb_Mercantour_df$Type <- factor(Nb_Mercantour_df$Type, levels = c("Prop_Colo_Mercantour", "Prop_PS_risk_Mercantour","Prop_PS_Att_Mercantour","Nb_Att_Mercantour"))
-#Growth_rate_Mercantour_df$Raw_nb <- Nb_Mercantour_df$Value
-
-#Plot restricted scale
-PropandNumbers_Mercantour_plot <- ggplot(data=Nb_Mercantour_df,aes(x=Annees, y=Value,color=Type)) +
-  geom_xspline(size=0.9) +
-  scale_color_manual(values=c(brewer.pal(9,"OrRd")[3], brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
-                              brewer.pal(11,"Spectral")[1]), labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
-                                                                      "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
-                     name="") +
-  # scale_linetype_manual(values=c("solid","twodash","solid"), labels=c("Proportion of PS\nunder depredation risk",
-  #                                                                     "Proportion of PS\nwith depredations", "Number of\ndepredations"),
-  #                       name="")+
-  scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),labels=as.character(c(seq(from=1996, to=2018, by=2))),expand = c(0.015,0)) +
-  scale_y_continuous("Proportion (%)", sec.axis = sec_axis(~ . * 25, name = "Number of depredations")) +
-  labs(x = "") +
-  theme_bw() +
-  theme(axis.text = element_text(size = 10, family="Segoe UI"),
-        legend.text = element_text(size=10),
-        text = element_text(size = 10),
-        axis.title.x = element_blank(),
-        axis.ticks = element_line(colour = 'black', size = 0.1),
-        axis.line = element_line(colour = "black", size = 0.1),
-        axis.text.x = element_text(angle=45,vjust=0.6),
-        axis.title.y.left = element_text(size = 13, face = "italic", family="Segoe UI",
-                                         margin = unit(c(0, 3, 0, 0), "mm")),
-        axis.line.y.right = element_line(color = brewer.pal(11,"Spectral")[1],size=0.65), 
-        axis.ticks.y.right = element_line(color = brewer.pal(11,"Spectral")[1]),
-        axis.text.y.right = element_text(color = brewer.pal(11,"Spectral")[1], family="Segoe UI"),
-        axis.title.y.right = element_text(color = brewer.pal(11,"Spectral")[1],margin = unit(c(0, 0, 0, 3), "mm"),
-                                          size = 13, face = "italic", family="Segoe UI"),
-        panel.border = element_blank(),
-        panel.grid.minor.x = element_line(colour = NA),
-        panel.grid.major = element_blank())
-
-# Growthrate_Mercantour_plot <- ggplot(data=Growth_rate_Mercantour_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
-# geom_rect(aes(xmin= -Inf,
-#               xmax = +Inf,
-#               ymin = -Inf,
-#               ymax = 0), fill = brewer.pal(9,"Greys")[2], alpha = 0.1, color=NA) +
-#   geom_xspline(size=0.9) +
-#   scale_color_manual(values=c(brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
-#                               brewer.pal(11,"Spectral")[1])) +
-#   scale_linetype_manual(values=c("solid","twodash","solid"))+
-#   scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),labels=as.character(c(seq(from=1996, to=2018, by=2))),expand = c(0.015,0)) +
-#   labs(y = "Growth rate (%)", x = "") +
-#   theme_bw() +
-#   theme(axis.text = element_text(size = 10, family="Segoe UI"),
-#         legend.position = "none",
-#         text = element_text(size = 10),
-#         axis.title.y = element_text(size = 13, face = "italic", family="Segoe UI"),
-#         axis.title.x = element_blank(),
-#         axis.ticks = element_line(colour = 'black', size = 0.1),
-#         axis.line = element_line(colour = "black", size = 0.1),
-#         axis.text.x = element_text(angle=45,vjust=0.6),
-#         panel.background = element_blank(),
-#         panel.border = element_blank(),
-#         panel.grid.minor.x = element_line(colour = NA),
-#         panel.grid.major = element_blank())
-
-############## Merge plots #############
-
-Legende <- get_legend(PropandNumbers_plot + 
-                        guides(color = guide_legend(nrow = 2)))
-
-grid1 <- plot_grid(PropandNumbers_plot + theme(legend.position="none"),
-                   # Growthrate_plot + theme(legend.position="none"),
-                   PropandNumbers_Mercantour_plot + theme(legend.position="none"),
-                   # Growthrate_Mercantour_plot + theme(legend.position="none"),
-                   labels = c('A', 'B'), 
-                   label_y=1.02,
-                   label_fontfamily = "Segoe UI",
-                   label_fontface = "plain",
-                   label_size = 20,
-                   nrow=2, align='vh')
-
-FigureFinale <- plot_grid(grid1, Legende, ncol=1, rel_heights = c(1, .15))
-
-ggsave("Figure3.png", device="png", width=130, height= 160, units=c("mm"))
-
-############################################## Figure 4 ###############################################
 
 # Prepare data
 Annee <- c(1995,2001,2010,2018)
@@ -507,177 +188,9 @@ Legende <- get_legend(
 
 FigureRipley <- plot_grid(grid1, Legende, ncol=1,rel_heights = c(1, .15))
 
-ggsave("Figure4.png", device="png", width=130, height= 160, units=c("mm"))
+ggsave("Figure1.png", device="png", width=130, height= 160, units=c("mm"))
 
-###################################### Figure 4b Bonus #########################################
-
-Annee <- c(1995,2001,2010,2018)
-
-Attaques_plot_fonction <- function(x){
-  Attaques_plot_liste <- list()
-  Maillage_total_Annnee <- Maillage_Loup_sf_liste[[as.character(Annee[x])]]
-  Maillage_analyse_Annnee <- Maillage_total_Annnee[as.data.frame(st_intersects(Maillage_total_Annnee,Study_area2))$row.id,]
-  Attaques_plot_liste[[x]] <- ggplot() +
-    geom_sf(data=Study_area2,fill="white",color="black", size=0.2) +
-    geom_sf(data=Maillage_analyse_Annnee, color=NA, aes(fill="Wolf presence cell")) +
-    geom_sf(data=UP_Loup_sf_liste[[as.character(Annee[x])]],color=NA,aes(fill="Pastoral surfaces \nunder depredation risk")) +
-    geom_sf(data=Attaques_sf_liste[[as.character(Annee[x])]],aes(color="Depredation on sheep"),size=0.3)+
-    scale_fill_manual(values=c("Pastoral surfaces \nunder depredation risk"=brewer.pal(9,"Greens")[5],
-                               "Wolf presence cell"=brewer.pal(9,"OrRd")[2]),name="")+
-    scale_color_manual(values=c("Depredation on sheep"=brewer.pal(11,"Spectral")[1]),name="")+
-    theme(axis.title = element_blank(),panel.border = element_blank(),
-          axis.text = element_blank(),axis.ticks = element_blank(),
-          legend.position = "bottom")}
-Attaques_plot_liste <- lapply(1:4, function(x) Attaques_plot_fonction(x))
-
-Figure_Attaques <- plot_grid(Attaques_plot_liste[[1]]+ theme(legend.position="none") +
-                                      north(data=Study_area,location="topright",scale=0.15,symbol=2) +
-                                      ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
-                                                     st.dist=0.025, st.size=2, border.size=0.20,location = "bottomleft",family="Segoe UI"), 
-                                    Attaques_plot_liste[[2]]+ theme(legend.position="none"),
-                                    Attaques_plot_liste[[3]]+ theme(legend.position="none"),
-                                    Attaques_plot_liste[[4]]+ theme(legend.position="none"),
-                                    align = 'vh',
-                                    nrow=2,
-                                    labels = c(as.character(Annee)), 
-                                    label_x=0.25,
-                                    label_y=0.75,
-                                    label_fontfamily = "Segoe UI",
-                                    label_fontface = "plain",
-                                    label_size = 12)
-
-Legende <- get_legend(Attaques_plot_liste[[1]]+ 
-                        guides(color = guide_legend(override.aes = list(size=2)),
-                               fill = guide_legend(override.aes = list(size=1))))
-
-Figure_Attaques <- plot_grid(Figure_Attaques, Legende, ncol=1,rel_heights = c(1, .05))
-
-ggsave("Figure4bonus.png", device="png", width=160, height=130, units=c("mm"))
-
-############################################## Figure 5 ###############################################
-
-Annee <- c(1999,2004,2010,2018)
-
-Resultats_Ripley_Mercantour_df_liste <- list()
-for(x in Annee){
-  Resultats_Ripley_Mercantour_df_liste[[x]] <- data.frame(x=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$r/1000,
-                                                          y=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$obs/10e+8,
-                                                          lower=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$lo/10e+8,
-                                                          upper=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$hi/10e+8,
-                                                          annee=as.factor(x))}
-Resultats_Ripley_Mercantour_df <- do.call("rbind", Resultats_Ripley_Mercantour_df_liste)
-Resultats_Ripley_Mercantour_df$annee <- factor(Resultats_Ripley_Mercantour_df$annee, 
-                                               levels = c("1999", "2010", "2004", "2018"))
-
-# Rmin_Ripley <- min(c(max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[1]),"x"]),
-#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[2]),"x"]),
-#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[3]),"x"]),
-#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[4]),"x"])))
-
-# ggplot(Resultats_Ripley_Mercantour_df) +
-#   geom_ribbon(aes(ymin = lower,ymax = upper,x = x,fill = annee),alpha = 0.6,size = 0.8) +
-#   geom_line(aes(y = y, x = x, colour = annee),size = 0.4,linetype = "twodash") +
-#   scale_fill_manual(values = c("1999" = "#D8B365","2004" = "#F6E8C3","2010" = "#5AB4AC","2018" = "#01665E"),
-#                     breaks = c("1999", "2004", "2010", "2018"),name="") +
-#   scale_colour_manual(values = c("1999" = "#8C510A","2004" = "#D8B365","2010" = "#5AB4AC","2018" = "#01665E"),
-#                       breaks = c("1999", "2004", "2010", "2018"),name="") +
-#   scale_x_continuous(breaks = scales::pretty_breaks(n = 6)
-#                      # limits=c(0,Rmin_Ripley)
-#                       ) +
-#   labs(x="r (km)", y= bquote(italic(K[inhom]~(10^9)))) +
-#   theme_bw()+
-#   theme(axis.text = element_text(size=10, family="Segoe UI"),
-#         legend.text = element_text(size=10),
-#         legend.box.margin = margin(0,0,0,0),
-#         legend.margin=margin(0,0,0,0),
-#         axis.title = element_text(size=13, face="italic", family="Segoe UI"),
-#         axis.title.x = element_text(margin = unit(c(t = 3, r = 0, b = 0, l = 0), "mm")),
-#         axis.ticks = element_line(colour = 'black', size = 0.1),
-#         axis.line = element_line(colour = "black", size=0.1),
-#         panel.border = element_blank(), 
-#         panel.grid.minor.x = element_line(colour = NA),
-#         panel.grid.major = element_blank())
-# 
-# ggsave("Figure5.png", device="png", width=100, height= 80, units=c("mm"))
-
-Resultats_Ripley_Mercantour_plot_fonction <- function(x){
-  Resultats_Ripley_Mercantour_plot_liste <- list()
-  Resultats_Ripley_Mercantour_plot <- ggplot(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==Annee[x],]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, x=x),fill="#D8B365",colour=NA,alpha=0.4, size=0.8)+
-    geom_line(aes(y=y,x=x),colour="#D8B365", size=0.5,linetype="solid") + 
-    scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
-    scale_y_continuous(breaks = scales::pretty_breaks(n = 4)) +
-    labs(x="r (km)", y= bquote(italic(K[inhom]~(10^9)))) +
-    theme_bw()+
-    theme(axis.text = element_text(size=10, family="Segoe UI"),
-          legend.text = element_text(size=10),
-          legend.box.margin = margin(0,0,0,0),
-          legend.margin=margin(0,0,0,0),
-          axis.title = element_text(size=13, face="italic", family="Segoe UI"),
-          axis.title.x = element_text(margin = unit(c(t = 3, r = 0, b = 0, l = 0), "mm")),
-          axis.ticks = element_line(colour = 'black', size = 0.1),
-          axis.line = element_line(colour = "black", size=0.1),
-          panel.border = element_blank(), 
-          panel.grid.minor.x = element_line(colour = NA),
-          panel.grid.major = element_blank())
-  Resultats_Ripley_Mercantour_plot_liste[[x]] <- Resultats_Ripley_Mercantour_plot}
-Resultats_Ripley_Mercantour_plot_liste <- lapply(1:4, function(x) Resultats_Ripley_Mercantour_plot_fonction(x))
-
-FigureRipleyMercantour <- plot_grid(Resultats_Ripley_Mercantour_plot_liste[[1]]+ xlab(NULL) + theme(legend.position="none"),
-                   Resultats_Ripley_Mercantour_plot_liste[[2]]+ ylab(NULL)+xlab(NULL) + theme(legend.position="none"),
-                   Resultats_Ripley_Mercantour_plot_liste[[3]]+ theme(legend.position="none"),
-                   Resultats_Ripley_Mercantour_plot_liste[[4]]+ ylab(NULL) + theme(legend.position="none"),
-                   align = 'vh',
-                   nrow=2,
-                   labels = c(as.character(Annee)), 
-                   label_x=0.2,
-                   label_fontfamily = "Segoe UI",
-                   label_fontface = "plain",
-                   label_size = 15)
-
-ggsave("Figure5b.png", device="png", width=130, height= 160, units=c("mm"))
-
-###################################### Figure 5b Bonus #########################################
-
-Annee_Mercantour <- c(1999,2004,2010,2018)
-
-Attaques_Mercantour_plot_fonction <- function(x){
-  Attaques_Mercantour_plot_liste <- list()
-  Attaques_Mercantour_plot_liste[[x]] <- ggplot() +
-    geom_sf(data=Mercantour_tot,fill="white",color="black", size=0.2) +
-    geom_sf(data=UP_Loup_Mercantour_sf_liste[[as.character(Annee_Mercantour[x])]],color=NA,aes(fill="Pastoral surfaces \nunder depredation risk")) +
-    geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(Annee_Mercantour[x])]],aes(color="Depredation on sheep"),size=0.8)+
-    scale_fill_manual(values=c("Pastoral surfaces \nunder depredation risk"=brewer.pal(9,"Greens")[5]),name="")+
-    scale_color_manual(values=c("Depredation on sheep"=brewer.pal(11,"Spectral")[1]),name="")+
-    theme(axis.title = element_blank(),panel.border = element_blank(),
-          axis.text = element_blank(),axis.ticks = element_blank(),
-          legend.position = "bottom")}
-Attaques_Mercantour_plot_liste <- lapply(1:4, function(x) Attaques_Mercantour_plot_fonction(x))
-
-FigureRipleyMercantour <- plot_grid(Attaques_Mercantour_plot_liste[[1]]+ theme(legend.position="none") +
-                                      north(data=Mercantour_tot,location="topright",scale=0.15,symbol=2) +
-                                      ggsn::scalebar(data=Mercantour_tot,transform = FALSE,dist = 10,dist_unit = "km", model = "WGS84",
-                                                     st.dist=0.025, st.size=2, border.size=0.20,location = "bottomleft",family="Segoe UI"), 
-                                    Attaques_Mercantour_plot_liste[[2]]+ theme(legend.position="none"),
-                                    Attaques_Mercantour_plot_liste[[3]]+ theme(legend.position="none"),
-                                    Attaques_Mercantour_plot_liste[[4]]+ theme(legend.position="none"),
-                                    align = 'vh',
-                                    nrow=2,
-                                    labels = c(as.character(Annee_Mercantour)), 
-                                    label_x=0.55,
-                                    label_y=0.9,
-                                    label_fontfamily = "Segoe UI",
-                                    label_fontface = "plain",
-                                    label_size = 13)
-
-Legende <- get_legend(Attaques_Mercantour_plot_liste[[1]]+ 
-                        guides(color = guide_legend(override.aes = list(size=2))))
-
-FigureMercantour <- plot_grid(FigureRipleyMercantour, Legende, ncol=1,rel_heights = c(1, .05))
-
-ggsave("Figure5Bonus.png", device="png", width=160, height=130, units=c("mm"))
-
-############################################## Figure 6 ###############################################
+############################################## Figure 2 ###############################################
 
 ############## Ratio of PS number in hotspots #############
 
@@ -847,25 +360,39 @@ Legende <- get_legend(Ratio_nb_hotspots_plot +
                         theme(legend.position = "bottom",
                               legend.spacing.x = unit(0.6, 'cm')))
 
+# Vertical
+# grid1 <- plot_grid(Nb_hotspots_plot + theme(legend.position="none"),
+#                    Ratio_nb_hotspots_plot + theme(legend.position="none"),
+#                    Surface_boxplot + theme(legend.position="none"),
+#                    labels = c('A', 'B', 'C'), 
+#                    label_x = 0.18,
+#                    label_fontfamily = "Segoe UI",
+#                    label_fontface = "plain",
+#                    label_size = 15,
+#                    rel_heights = c(0.9, .9,1),
+#                    nrow=3, align='vh')
+
+# Horizontal
 grid1 <- plot_grid(Nb_hotspots_plot + theme(legend.position="none"),
                    Ratio_nb_hotspots_plot + theme(legend.position="none"),
                    Surface_boxplot + theme(legend.position="none"),
                    labels = c('A', 'B', 'C'), 
-                   label_x = 0.18,
+                   label_x = 0.1,
                    label_fontfamily = "Segoe UI",
                    label_fontface = "plain",
                    label_size = 15,
                    rel_heights = c(0.9, .9,1),
-                   nrow=3, align='vh')
+                   nrow=1, align='vh')
 
-Figure6 <- plot_grid(grid1, Legende, ncol=1, rel_heights = c(1, .05))
+Figure2 <- plot_grid(grid1, Legende, ncol=1, rel_heights = c(1, .09))
 
-ggsave("Figure6.png", device="png", width=130, height= 165, units=c("mm"))
+ggsave("Figure2.png", device="png", width=350, height= 100, units=c("mm"))
+# ggsave("Figure2.png", device="png", width=130, height= 165, units=c("mm"))
 
-############################################## Figure 7 ###############################################
+############################################## Figure 3 ###############################################
 
+# Choose year to display
 x=2017
-
 UP_Loup_annee_sf <- UP_Loup_sf_liste[[as.character(x)]]
 
 # Identify which PU are depredated
@@ -924,8 +451,9 @@ UP_Loup_annee_sf$CLUSTER_FICTIF <- factor(UP_Loup_annee_sf$CLUSTER_FICTIF, level
 levels(UP_Loup_annee_sf$CLUSTER_FICTIF) <- c("Not depredated","No hotspot","Hotspot", "Hotspot")
 
 # Plots
-Couleur_Cluster_pondere = c("Not depredated" = brewer.pal(12,"Set3")[9], "Hotspot" = brewer.pal(11,"BrBG")[2],"No hotspot" = brewer.pal(11,"BrBG")[4])
 
+# Heterogeneous sheep availability
+Couleur_Cluster_pondere = c("Not depredated" = brewer.pal(12,"Set3")[9], "Hotspot" = brewer.pal(11,"BrBG")[2],"No hotspot" = brewer.pal(11,"BrBG")[4])
 Figure_Hotspots_pondere <- ggplot() +
   geom_sf(data=Study_area2, fill="white", size=0.01) +
   geom_sf(data=UP_Loup_annee_sf, aes(fill=as.factor(CLUSTER_POND)), color=NA) +
@@ -934,22 +462,31 @@ Figure_Hotspots_pondere <- ggplot() +
           color=brewer.pal(11,"BrBG")[2], size=0.3, alpha=0.5) +
   scale_fill_manual(values = Couleur_Cluster_pondere) +
   annotate(geom="text", x=800000, y=6505000, label = bquote(with~"observed heterogenous"), 
-           size=2.1, family="Segoe UI", color=brewer.pal(11,"BrBG")[2], fontface=1) +
+           size=7, family="Segoe UI", color=brewer.pal(11,"BrBG")[2], fontface=1) +
   annotate(geom="text", x=800000, y=6485000, label = bquote(sheep~availability),
-           size=2.1, color=brewer.pal(11,"BrBG")[2], fontface=1, family="Segoe UI", ) +
+           size=7, color=brewer.pal(11,"BrBG")[2], fontface=1, family="Segoe UI", ) +
+  north(data=Study_area,location="topright",scale=0.10,symbol=2) +
   ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
-                 st.dist=0.035, st.size=1.5, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
+                 st.dist=0.035, st.size=6, height = 0.015, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
   labs(fill="") +
   theme_bw() +
   theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), panel.border = element_blank(),
-        legend.key.size = unit(0.02,"npc"),
-        legend.text = element_text(size=7),
-        legend.position = "bottom")
+        #legend.key.size = unit(0.02,"npc"),
+        legend.text = element_text(size=16),        
+        legend.key.size = unit(1, 'cm'),
+        legend.key.width = unit(1, 'cm'),
+        legend.spacing.y = unit(1, 'cm'),
+        legend.spacing.x = unit(0.5, 'cm'),
+        legend.position = "bottom",
+        panel.grid.major = element_line(size = 1))
+Legende1 <- get_legend(Figure_Hotspots_pondere + 
+                        guides(color = guide_legend(nrow = 1)) +
+                        theme(legend.position = "bottom"))
 
+# Simulated homogeneous sheep availability
 Couleur_Cluster_homogene = c("Not depredated" = brewer.pal(12,"Set3")[9], "Hotspot" = brewer.pal(11,"BrBG")[10],"No hotspot" = brewer.pal(11,"BrBG")[8])
-
 Figure_Hotspots_homogene <-  ggplot() +
   geom_sf(data=Study_area2, fill="white", size=0.01) +
   geom_sf(data=UP_Loup_annee_sf, aes(fill=as.factor(CLUSTER_FICTIF)), color=NA) +
@@ -958,66 +495,358 @@ Figure_Hotspots_homogene <-  ggplot() +
           color=brewer.pal(11,"BrBG")[10], size=0.3, alpha=0.05) +
   scale_fill_manual(values = Couleur_Cluster_homogene) +
   annotate(geom="text", x=800000, y=6505000, label = bquote(with~"simulated homogenous"), #bold() pour du gras
-           size=2.1, color=brewer.pal(11,"BrBG")[10], fontface=1, family="Segoe UI", ) +
+           size=7, color=brewer.pal(11,"BrBG")[10], fontface=1, family="Segoe UI", ) +
   annotate(geom="text", x=800000, y=6485000, label = bquote(sheep~availability),
-           size=2.1, color=brewer.pal(11,"BrBG")[10], fontface=1, family="Segoe UI", ) +
+           size=7, color=brewer.pal(11,"BrBG")[10], fontface=1, family="Segoe UI", ) +
   north(data=Study_area,location="topright",scale=0.10,symbol=2) +
+  ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
+                 st.dist=0.035, st.size=6,  height = 0.015, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
   labs(fill="") +
   theme_bw() +
   theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), panel.border = element_blank(),
-        legend.key.size = unit(0.02,"npc"),
-        legend.text = element_text(size=7),
-        legend.position = "bottom")
-
-Legende1 <- get_legend(Figure_Hotspots_pondere + 
-                        guides(color = guide_legend(nrow = 1)) +
-                        theme(legend.position = "bottom"))
-
+        #legend.key.size = unit(0.02,"npc"),     
+        legend.key.size = unit(1, 'cm'),
+        legend.key.width = unit(1, 'cm'),
+        legend.spacing.y = unit(1, 'cm'),
+        legend.spacing.x = unit(0.5, 'cm'),
+        legend.text = element_text(size=16),
+        legend.position = "bottom",
+        panel.grid.major = element_line(size = 1))
 Legende2 <- get_legend(Figure_Hotspots_homogene + 
                          guides(color = guide_legend(nrow = 1)) +
                          theme(legend.position = "bottom"))
 
-legends <- plot_grid(Legende1, Legende2, nrow=1, align='vh')
-
+# Merge plots
 grid1 <- plot_grid(Figure_Hotspots_pondere + theme(legend.position="none"),
+                   Legende1,
                    Figure_Hotspots_homogene + theme(legend.position="none"),
-                     labels = c('A', 'B'), label_fontfamily = "Segoe UI",label_fontface="plain",
-                     label_size = 10, label_x = 0.1, nrow=1, align='vh')
+                   Legende2,
+                   # Labels
+                   labels = c('A','B', 'C','D'),
+                   label_fontfamily = "Segoe UI",
+                   label_fontface="plain",
+                   label_size = 15,
+                   label_x = 1.5,
+                   # Configuration
+                   nrow=4, 
+                   rel_heights = c(1, 0.04, 1, 0.04),
+                   axis = "r",
+                   align='v')
 
-Figure7 <- plot_grid(grid1, legends,
-                     nrow=2, align='vh', rel_heights = c(1, .10))
+############################################## Appendix A ###############################################
 
-ggsave("Figure7.png", device="png", width=210, height= 120, units=c("mm"))
+############################################## Appendix A.1 ###############################################
 
-###################################### Supplementary Figure 1 #########################################
+ggplot() + 
+  geom_sf(data=Europe_cropped, size=0.01) +
+  geom_sf(data=Study_area2, fill="white", color="black", size=0.20) +
+  geom_sf(data=Mercantour_tot,fill="white",color="black", size=0.2) +
+  geom_sf(data=hatch(Mercantour_tot,density = 7),size=0.2) +
+  ggsn::scalebar(data=Europe_cropped,transform = FALSE,dist = 100,dist_unit = "km", model = "WGS84",
+                 st.dist=0.035, st.size=1.5, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
+  north(data=Europe_cropped,location="topright",scale=0.10,symbol=2) +
+  theme(axis.title = element_blank(),panel.border = element_blank(),
+        axis.text = element_text(size=5),text = element_text(family="Segoe UI"),axis.ticks = element_blank())
+
+ggsave("AppendixA1.png", device="png", width=70, height= 80, units=c("mm"))
+
+############################################## Appendix A.2 ###############################################
+
+############## National scale #############
+
+#Proportion of wolf distribution
+Nb_Cell_tot <- length(unique(as.data.frame(st_intersects(Study_area2,Maillage_sf))$col.id))
+Nb_Cell <- c(rep(NA,24))
+for (i in 1:24){Nb_Cell[i] <- nrow(Maillage_Loup_sf_liste[[as.character(Annees[i])]])}
+Prop_Colo <- ceiling(Nb_Cell/Nb_Cell_tot*100)
+
+#Number and proportion of PS at risk 
+Nb_PS_risk <- c(rep(NA,24))
+for (i in 1:24){Nb_PS_risk[i] <- nrow(UP_Loup_sf_liste[[as.character(Annees[i])]])}
+Nb_PS_tot <- c(rep(nrow(UP1996_sf),11),rep(nrow(UP2012_sf),13))
+Prop_PS_risk <- ceiling(Nb_PS_risk/Nb_PS_tot*100)
+
+#Number and proportion of attacked PS 
+PS_attacked_fonction <- function(x){  
+  Nb_PS_Att <- c()
+  Attaques_Annee_sf <- Attaques_sf_liste[[as.character(x)]]
+  SP_Annee_sf <- UP_Loup_sf_liste[[as.character(x)]]
+  SP_Att_df <- as.data.frame(st_intersects(Attaques_Annee_sf,SP_Annee_sf)) 
+  Nb_PS_Att[x] <- length(unique(SP_Att_df$col.id))}
+Nb_PS_Att <- sapply(1995:2018, function(x) PS_attacked_fonction(x))
+Prop_PS_Att <- ceiling(Nb_PS_Att/Nb_PS_risk*100)
+
+#Number of attacks 
+Nb_Att <- c(rep(NA,24))
+for (i in 1:24){Nb_Att[i] <- nrow(Attaques_sf_liste[[as.character(Annees[i])]])}
+
+#Differences  
+# Diff_df <- data.frame(
+#   Diff_growth_colo = Prop_Colo-lag(Prop_Colo),
+#   Diff_growth_risk = Prop_PS_risk - lag(Prop_PS_risk),
+#   Diff_growth_PSatt = Prop_PS_Att - lag(Prop_PS_Att),
+#   Diff_growth_Att = Nb_Att - lag(Nb_Att))
+# Growth_rate_nat_df <- data.frame(
+#   Annees=Annees,
+#   Rate_colo = Diff_df$Diff_growth_colo/Prop_Colo * 100,
+#   Rate_percent_risk = Diff_df$Diff_growth_risk/Prop_PS_risk * 100,
+#   Rate_percent_PSatt = Diff_df$Diff_growth_PSatt/Prop_PS_Att * 100,
+#   Rate_percent_NbAtt = Diff_df$Diff_growth_Att/Nb_Att * 100)
+# Growth_rate_nat_df <- gather(data=Growth_rate_nat_df, "Type", "Value",-Annees)
+# Growth_rate_nat_df$Type <- factor(Growth_rate_nat_df$Type, levels = c("Rate_percent_risk", "Rate_percent_PSatt","Rate_percent_NbAtt"))
+
+#Data.frame of results
+Nb_nat_df <- data.frame(
+  Annees=Annees,
+  Prop_Colo = Prop_Colo,
+  Prop_PS_risk = Prop_PS_risk,
+  Prop_PS_Att = Prop_PS_Att,
+  Nb_Att = Nb_Att/25) #Divided for the secondary axis
+Nb_nat_df <- gather(data=Nb_nat_df, "Type", "Value",-Annees)
+Nb_nat_df$Type <- factor(Nb_nat_df$Type, levels = c("Prop_Colo", "Prop_PS_risk","Prop_PS_Att","Nb_Att"))
+# Growth_rate_nat_df$Raw_nb <- Nb_nat_df$Value
+
+#Plot national scale
+PropandNumbers_plot <- ggplot(data=Nb_nat_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
+  geom_xspline(size=0.9) + #1.2 for LaTeX, 0.9 for Art
+  scale_linetype_manual(values=c("solid","dotted","dotdash","dashed"),
+                        labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
+                                 "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
+                        name="", guide=ggplot2::guide_legend(ncol = 2)) +
+  scale_color_manual(values=c(brewer.pal(9,"OrRd")[3], brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
+                              brewer.pal(11,"Spectral")[1]), labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
+                                                                      "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
+                        name="", guide=ggplot2::guide_legend(ncol = 2)) +
+  # scale_linetype_manual(values=c("solid","solid","solid","solid"), labels=c("Area recolonised\n by wolves","PS\nunder depredation risk",
+  #                                                                     "PS\nwith depredations", "Number of\ndepredations"),
+  #                       name="")+
+  scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)), #LaTeX 4, Art 2
+                     labels=as.character(c(seq(from=1996, to=2018, by=2))), #LaTeX 4, Art 2
+                     expand = c(0.015,0)) +
+  scale_y_continuous("Proportion (%)", sec.axis = sec_axis(~ . * 25, name = "Number of depredations"),
+                     limits = c(0,100)) +
+  labs(x = "") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 10, family="Segoe UI"), #LaTeX 25, Art 10
+        legend.text = element_text(size=10), #LaTeX 18, Art 10
+        legend.key.width=unit(2,"cm"), #LaTeX 3, Art 2
+        text = element_text(size = 10), #LaTeX 25, Art 10
+        axis.title.x = element_blank(),
+        axis.ticks = element_line(colour = 'black', size = 0.1),
+        axis.line = element_line(colour = "black", size = 0.1),
+        axis.text.x = element_text(angle=45,vjust=0.6),
+        axis.title.y.left = element_text(size = 13, face = "italic", family="Segoe UI", #LaTeX 25, Art 13
+                                         margin = unit(c(0, 3, 0, 0), "mm")),
+        axis.line.y.right = element_line(color = brewer.pal(11,"Spectral")[1],size=0.65), 
+        axis.ticks.y.right = element_line(color = brewer.pal(11,"Spectral")[1]),
+        axis.text.y.right = element_text(color = brewer.pal(11,"Spectral")[1], family="Segoe UI"),
+        axis.title.y.right = element_text(color = brewer.pal(11,"Spectral")[1],margin = unit(c(0, 0, 0, 3), "mm"),
+                                          size = 13, face = "italic", family="Segoe UI"), #LaTeX 25, Art 13
+        panel.border = element_blank(),
+        panel.grid.minor.x = element_line(colour = NA, size=5), 
+        panel.grid.major = element_blank()) 
+
+# Growthrate_plot <- ggplot(data=Growth_rate_nat_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
+# geom_rect(aes(xmin= -Inf,
+#               xmax = +Inf,
+#               ymin = -Inf,
+#               ymax = 0), fill = brewer.pal(9,"Greys")[2], alpha = 0.1, color=NA) +
+#   geom_xspline(size=0.9) +
+#   scale_color_manual(values=c(brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
+#                               brewer.pal(11,"Spectral")[1])) +
+#   scale_linetype_manual(values=c("solid","twodash","solid"))+
+#   scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),labels=as.character(c(seq(from=1996, to=2018, by=2))),expand = c(0.015,0)) +
+#   labs(y = "Growth rate (%)", x = "") +
+#   theme_bw() +
+#   theme(axis.text = element_text(size = 10, family="Segoe UI"),
+#         legend.position = "none",
+#         text = element_text(size = 10),
+#         axis.title.y = element_text(size = 13, face = "italic", family="Segoe UI"),
+#         axis.title.x = element_blank(),
+#         axis.ticks = element_line(colour = 'black', size = 0.1),
+#         axis.line = element_line(colour = "black", size = 0.1),
+#         axis.text.x = element_text(angle=45,vjust=0.6),
+#         panel.background = element_blank(),
+#         panel.border = element_blank(),
+#         panel.grid.minor.x = element_line(colour = NA),
+#         panel.grid.major = element_blank())
+
+############## Mercantour scale #############
+
+
+#Proportion of wolf distribution
+Nb_Cell_tot_Mercantour <- length(unique(as.data.frame(st_intersects(Mercantour_tot,Maillage_sf))$col.id))
+Nb_Cell_Mercantour <- c(rep(NA,24))
+for (i in 1:24){Nb_Cell_Mercantour[i] <- nrow(Maillage_Loup_Mercantour_sf_liste[[as.character(Annees[i])]])}
+Prop_Colo_Mercantour <- ceiling(Nb_Cell_Mercantour/Nb_Cell_tot_Mercantour*100)
+
+#Number and proportion of PS at risk in Mercantour
+Nb_PS_risk_Mercantour <- c(rep(NA,24))
+for (i in 1:24){Nb_PS_risk_Mercantour[i] <- nrow(UP_Loup_Mercantour_sf_liste[[as.character(Annees[i])]])}
+Nb_PS_tot_Mercantour <- c(rep(nrow(UP1996_Mercantour_sf),11),rep(nrow(UP2012_Mercantour_sf),13))
+Prop_PS_risk_Mercantour <- ceiling(Nb_PS_risk_Mercantour/Nb_PS_tot_Mercantour*100)
+
+#Number and proportion of attacked PS in Mercantour
+PS_attacked_Mercantour_fonction <- function(x){  
+  Nb_PS_Att_Mercantour <- c()
+  Attaques_Annee_sf <- Attaques_Mercantour_sf_liste[[as.character(x)]]
+  SP_Annee_sf <- UP_Loup_Mercantour_sf_liste[[as.character(x)]]
+  SP_Att_df <- as.data.frame(st_intersects(Attaques_Annee_sf,SP_Annee_sf)) 
+  Nb_PS_Att_Mercantour[x] <- length(unique(SP_Att_df$col.id))}
+Nb_PS_Att_Mercantour <- sapply(1995:2018, function(x) PS_attacked_Mercantour_fonction(x))
+Prop_PS_Att_Mercantour <- ceiling(Nb_PS_Att_Mercantour/Nb_PS_risk_Mercantour*100)
+
+#Number of attacks 
+Nb_Att_Mercantour <- c(rep(NA,24))
+for (i in 1:24){Nb_Att_Mercantour[i] <- nrow(Attaques_Mercantour_sf_liste[[as.character(Annees[i])]])}
+
+# #Differences
+# Diff_df <- data.frame(
+#   Diff_growth_risk_Mercantour = Prop_PS_risk_Mercantour - lag(Prop_PS_risk_Mercantour),
+#   Diff_growth_PSatt_Mercantour = Prop_PS_Att_Mercantour - lag(Prop_PS_Att_Mercantour),
+#   Diff_growth_Att_Mercantour = Nb_Att_Mercantour - lag(Nb_Att_Mercantour)) 
+# #Restricted scale
+# Growth_rate_Mercantour_df <- data.frame(
+#   Annees=Annees,
+#   Rate_percent_risk_Mercantour = Diff_df$Diff_growth_risk_Mercantour/Prop_PS_risk_Mercantour * 100,
+#   Rate_percent_PSatt_Mercantour = Diff_df$Diff_growth_PSatt_Mercantour/Prop_PS_Att_Mercantour * 100,
+#   Rate_percent_NbAtt_Mercantour = Diff_df$Diff_growth_Att_Mercantour/Nb_Att_Mercantour * 100)
+# Growth_rate_Mercantour_df <- gather(data=Growth_rate_Mercantour_df, "Type", "Value",-Annees)
+# Growth_rate_Mercantour_df$Type <- factor(Growth_rate_Mercantour_df$Type, levels = c("Rate_percent_risk_Mercantour", 
+#                                                                                     "Rate_percent_PSatt_Mercantour",
+#                                                                                     "Rate_percent_NbAtt_Mercantour"))
+
+#Data.frame of result
+Nb_Mercantour_df <- data.frame(
+  Annees=Annees,
+  Prop_Colo_Mercantour = Prop_Colo_Mercantour,
+  Prop_PS_risk_Mercantour = Prop_PS_risk_Mercantour,
+  Prop_PS_Att_Mercantour = Prop_PS_Att_Mercantour,
+  Nb_Att_Mercantour = Nb_Att_Mercantour/25)
+Nb_Mercantour_df <- gather(data=Nb_Mercantour_df, "Type", "Value",-Annees)
+Nb_Mercantour_df$Type <- factor(Nb_Mercantour_df$Type, levels = c("Prop_Colo_Mercantour", "Prop_PS_risk_Mercantour","Prop_PS_Att_Mercantour","Nb_Att_Mercantour"))
+#Growth_rate_Mercantour_df$Raw_nb <- Nb_Mercantour_df$Value
+
+#Plot restricted scale
+PropandNumbers_Mercantour_plot <- ggplot(data=Nb_Mercantour_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
+  geom_xspline(size=0.9) + #1.2 for LaTeX, 0.9 for Art
+  scale_linetype_manual(values=c("solid","dotted","dotdash","dashed"),
+                        labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
+                                 "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
+                        name="") +
+  scale_color_manual(values=c(brewer.pal(9,"OrRd")[3], brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
+                              brewer.pal(11,"Spectral")[1]), 
+                     labels=c("Area recolonised\n by wolves","Pastoral surfaces\nunder depredation risk",
+                              "Pastoral surfaces\nwith depredations", "Number of\ndepredations"),
+                     name="") +
+  # scale_linetype_manual(values=c("solid","twodash","solid"), labels=c("Proportion of PS\nunder depredation risk",
+  #                                                                     "Proportion of PS\nwith depredations", "Number of\ndepredations"),
+  #                       name="")+
+  scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),  #LaTeX 4, Art 2
+                     labels=as.character(c(seq(from=1996, to=2018, by=2))),  #LaTeX 4, Art 2
+                     expand = c(0.015,0)) +
+  scale_y_continuous("Proportion (%)", sec.axis = sec_axis(~ . * 25, name = "Number of depredations")) +
+  labs(x = "") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 10, family="Segoe UI"), #LaTeX 25, Art 10
+        legend.text = element_text(size=10), #LaTeX 18, Art 10
+        text = element_text(size = 10), #LaTeX 25, Art 10
+        axis.title.x = element_blank(),
+        axis.ticks = element_line(colour = 'black', size = 0.1),
+        axis.line = element_line(colour = "black", size = 0.1),
+        axis.text.x = element_text(angle=45,vjust=0.6),
+        axis.title.y.left = element_text(size = 13, face = "italic", family="Segoe UI",
+                                         margin = unit(c(0, 3, 0, 0), "mm")), #LaTeX 25, Art 13
+        axis.line.y.right = element_line(color = brewer.pal(11,"Spectral")[1],size=0.65), 
+        axis.ticks.y.right = element_line(color = brewer.pal(11,"Spectral")[1]),
+        axis.text.y.right = element_text(color = brewer.pal(11,"Spectral")[1], family="Segoe UI"),
+        axis.title.y.right = element_text(color = brewer.pal(11,"Spectral")[1],margin = unit(c(0, 0, 0, 3), "mm"),
+                                          size = 13, face = "italic", family="Segoe UI"), #LaTeX 25, Art 13
+        panel.border = element_blank(),
+        panel.grid.minor.x = element_line(colour = NA, size=5),
+        panel.grid.major = element_blank())
+
+# Growthrate_Mercantour_plot <- ggplot(data=Growth_rate_Mercantour_df,aes(x=Annees, y=Value,color=Type,linetype=Type)) +
+# geom_rect(aes(xmin= -Inf,
+#               xmax = +Inf,
+#               ymin = -Inf,
+#               ymax = 0), fill = brewer.pal(9,"Greys")[2], alpha = 0.1, color=NA) +
+#   geom_xspline(size=0.9) +
+#   scale_color_manual(values=c(brewer.pal(9,"Greens")[5],brewer.pal(9,"Greens")[8],
+#                               brewer.pal(11,"Spectral")[1])) +
+#   scale_linetype_manual(values=c("solid","twodash","solid"))+
+#   scale_x_continuous(breaks=c(seq(from=1996, to=2018, by=2)),labels=as.character(c(seq(from=1996, to=2018, by=2))),expand = c(0.015,0)) +
+#   labs(y = "Growth rate (%)", x = "") +
+#   theme_bw() +
+#   theme(axis.text = element_text(size = 10, family="Segoe UI"),
+#         legend.position = "none",
+#         text = element_text(size = 10),
+#         axis.title.y = element_text(size = 13, face = "italic", family="Segoe UI"),
+#         axis.title.x = element_blank(),
+#         axis.ticks = element_line(colour = 'black', size = 0.1),
+#         axis.line = element_line(colour = "black", size = 0.1),
+#         axis.text.x = element_text(angle=45,vjust=0.6),
+#         panel.background = element_blank(),
+#         panel.border = element_blank(),
+#         panel.grid.minor.x = element_line(colour = NA),
+#         panel.grid.major = element_blank())
+
+############## Merge plots #############
+
+Legende <- get_legend(PropandNumbers_plot + 
+                      guides(color = guide_legend(override.aes = list(size=1))))
+
+grid1 <- plot_grid(PropandNumbers_plot + theme(legend.position="none"),
+                   # Growthrate_plot + theme(legend.position="none"),
+                   PropandNumbers_Mercantour_plot + theme(legend.position="none"),
+                   # Growthrate_Mercantour_plot + theme(legend.position="none"),
+                   labels = c('A', 'B'), 
+                   label_y=1.02,
+                   label_fontfamily = "Segoe UI",
+                   label_fontface = "plain",
+                   label_size = 20, #LaTeX 25, Art 20
+                   nrow=2, align='vh')
+
+FigureFinale <- plot_grid(grid1, Legende, ncol=1, rel_heights = c(1, 0.15)) #LaTeX 0.2 Art 0.15
+FigureFinale
+
+ggsave("Figure3.png", device="png", width=130, height= 160, units=c("mm"))
+
+# 1200 747
+
+############################################## Figures Bonus ###############################################
+
+############################################## Figure Bonus 1 ###############################################
+
 ############## Number of sheep ############## 
 
-Effectifs_classes <- cut(UP1996_sf$EFF_OV, 
+Effectifs_classes <- cut(UP2012_sf$EFF_OV, 
                          breaks = c(0, 100, 200, 500, 700, 1000, 2500, +Inf), 
                          labels = c("<100", "100-199", "200-499", "500-699", "700-999", "1000-2499",">2500"), 
                          right = FALSE)
 
-UP1996_sf$Eff_Class <- Effectifs_classes
+UP2012_sf$Eff_Class <- Effectifs_classes
 
 Figure_Effectifs <-   ggplot() +
   geom_sf(data=Study_area2, fill="white", size=0.01) +
   geom_sf(data=Mercantour_tot,fill="white",color="black",size=0.3) +
   geom_sf(data=hatch(Mercantour_tot,density = 15),size=0.3) +
-  geom_sf(data=UP1996_sf, aes(fill=Eff_Class), color=NA) +
+  geom_sf(data=UP2012_sf, aes(fill=Eff_Class, color=Eff_Class), size=0.3) +
   scale_fill_brewer(palette="Greens") +
-  labs(fill="Number of \nsheep") +
+  scale_color_brewer(palette="Greens") +
+  labs(fill="Number of \nsheep", color="Number of \nsheep") +
   ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
                  st.dist=0.035, st.size=2, border.size=0.20,location = "bottomleft",family="Segoe UI") + 
   theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), panel.border = element_blank(),
         text = element_text(family="Segoe UI"),
+        legend.key.size = unit(0.03,"npc"),
         legend.text = element_text(size=7),
         legend.title = element_text(size=9),
         legend.position = "right") 
-Figure_Effectifs
 
 ############## Grazing time ############## 
 
@@ -1025,287 +854,199 @@ Figure_Duree <-   ggplot() +
   geom_sf(data=Study_area2, fill="white", size=0.01) +
   geom_sf(data=Mercantour_tot,fill="white",color="black",size=0.3) +
   geom_sf(data=hatch(Mercantour_tot,density = 15),size=0.3) +
-  geom_sf(data=UP1996_sf, aes(fill=DUREE_PAT), color=NA) +
+  geom_sf(data=UP2012_sf, aes(fill=DUREE_PAT, color=DUREE_PAT), size=0.3) +
   scale_fill_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
+  scale_color_gradient(low=brewer.pal(9, "Blues")[1],high=brewer.pal(9,"Blues")[9]) +
   north(data=Study_area,location="topright",scale=0.125,symbol=2) +
-  labs(fill="Sheep grazing \ntime (days)") +
+  labs(fill="Sheep grazing \ntime (days)",color="Sheep grazing \ntime (days)") +
   theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), panel.border = element_blank(),
         text = element_text(family="Segoe UI"),
+        legend.key.size = unit(0.03,"npc"),
         legend.text = element_text(size=7),
         legend.title = element_text(size=9),
         legend.spacing.x = unit(0.5, 'cm')) 
-Figure_Duree
 
-FinalSuppFigure <- plot_grid(Figure_Effectifs, Figure_Duree, labels = c('A', 'B'), nrow = 2, label_fontfamily = "Segoe UI",
-                         label_size = 15, scale=0.9)
+FinalFigure <- plot_grid(Figure_Effectifs, Figure_Duree, labels = c('A', 'B'), nrow = 1, label_fontfamily = "Segoe UI",
+                        label_size = 15, scale=0.9, label_x = 0.12, label_fontface="plain")
 
-ggsave("SuppFig1.png", device="png", width=210, height= 297, units=c("mm"))
+ggsave("Figure2.png", device="png", width=210, height= 70, units=c("mm"))
 
-###################################### Supplementary Figure 2 #########################################
 
-setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Data")
+###################################### Figure Bonus 2 #########################################
 
-#### Regional scale
+Annee <- c(1996,2001,2010,2018)
 
-#Prepare wolf distribution within study area data
-Maillage_Annee_fonction <- function(x){
-  Maillage_Annee_sf_liste <- list()
-  Maillage_Annee_sf_liste[[x]] <- Maillage_Loup_sf_liste[[as.character(x)]][c(as.data.frame(st_intersects(Maillage_Loup_sf_liste[[as.character(x)]],Study_area2))$row.id),]}
-Maillage_Annee_sf_liste <- lapply(1995:2018, function(x) Maillage_Annee_fonction(x)) 
-names(Maillage_Annee_sf_liste) <- c(1995:2018)
-save(Maillage_Annee_sf_liste,file="Maillage_Annee_sf_liste.RData")
+Attaques_plot_fonction <- function(x){
+  Attaques_plot_liste <- list()
+  Maillage_total_Annnee <- Maillage_Loup_sf_liste[[as.character(Annee[x])]]
+  Maillage_analyse_Annnee <- Maillage_total_Annnee[as.data.frame(st_intersects(Maillage_total_Annnee,Study_area2))$row.id,]
+  Attaques_plot_liste[[x]] <- ggplot() +
+    geom_sf(data=Study_area2,fill="white",color="black", size=0.2) +
+    geom_sf(data=Maillage_analyse_Annnee, color=NA, aes(fill="Wolf presence cell")) +
+    geom_sf(data=UP_Loup_sf_liste[[as.character(Annee[x])]],color=NA,aes(fill="Pastoral surfaces \nunder depredation risk")) +
+    geom_sf(data=Attaques_sf_liste[[as.character(Annee[x])]],aes(color="Depredation on sheep"),size=5)+
+    north(data=Study_area,location="topright",scale=0.10,symbol=2) +
+    ggsn::scalebar(data=Study_area,transform = FALSE,dist = 50,dist_unit = "km", model = "WGS84",
+                   st.dist=0.025, st.size=20, border.size=0.20,location = "bottomleft",family="Segoe UI") +
+    scale_fill_manual(values=c("Pastoral surfaces \nunder depredation risk"=brewer.pal(9,"Greens")[5],
+                               "Wolf presence cell"=brewer.pal(9,"OrRd")[2]),name="")+
+    scale_color_manual(values=c("Depredation on sheep"=brewer.pal(11,"Spectral")[1]),name="")+
+    theme(axis.title = element_blank(),panel.border = element_blank(),
+          axis.text = element_blank(),axis.ticks = element_blank(),
+          legend.text = element_text(size=60),
+          legend.key.size = unit(2.5, 'cm'),
+          legend.key.width = unit(3, 'cm'),
+          legend.spacing.y = unit(25, 'cm'),
+          legend.spacing.x = unit(3, 'cm'),
+          legend.position = "bottom",
+          panel.grid.major = element_line(size = 2))}
+Attaques_plot_liste <- lapply(1:4, function(x) Attaques_plot_fonction(x))
 
-#Prepare all PS data
-UP_Annee1 <- rep(list(UP1996_sf),length(1995:2005))
-UP_Annee2 <- rep(list(UP2012_sf),length(2006:2018))
-UP_Annee <- c(UP_Annee1,UP_Annee2)
-names(UP_Annee) <- c(1995:2018)
-save(UP_Annee,file="UP_Annee.RData")
+Figure_Attaques <- plot_grid(Attaques_plot_liste[[1]]+ theme(legend.position="none"), 
+                                    Attaques_plot_liste[[2]]+ theme(legend.position="none"),
+                                    Attaques_plot_liste[[3]]+ theme(legend.position="none"),
+                                    Attaques_plot_liste[[4]]+ theme(legend.position="none"),
+                                    align = 'vh',
+                                    nrow=2,
+                                    labels = c(as.character(Annee)), 
+                                    label_x=0.25,
+                                    label_y=0.75,
+                                    label_fontfamily = "Segoe UI",
+                                    label_fontface = "plain",
+                                    label_size = 65)
 
-#Prepare PS under rik data
-UP_risk_fonction_1 <- function(x){
-  UP_risk_sf_liste_1 <- list()
-  UP_risk_sf_liste_1 <- UP1996_sf[c(as.data.frame(st_intersects(UP1996_sf,Maillage_Annee_sf_liste[[as.character(x)]]))$row.id),]
-  if(length(which(duplicated(UP_risk_sf_liste_1)))>0){
-    UP_risk_sf_liste_1 <- UP_risk_sf_liste_1[-c(which(duplicated(UP_risk_sf_liste_1))),]}
-  UP_risk_sf_liste_1[[x]] <- UP_risk_sf_liste_1}
-UP_risk_sf_liste_1 <- lapply(1995:2005, function(x) UP_risk_fonction_1(x)) 
-names(UP_risk_sf_liste_1) <- c(1995:2005)
-save(UP_risk_sf_liste_1,file="UP_risk_sf_liste_1.RData")
+Legende <- get_legend(Attaques_plot_liste[[1]]+ 
+                        guides(color = guide_legend(override.aes = list(size=15)),
+                               fill = guide_legend(override.aes = list(size=2.5))))
 
-UP_risk_fonction_2 <- function(x){
-  UP_risk_sf_liste_2 <- list()
-  UP_risk_sf_liste_2 <- UP2012_sf[c(as.data.frame(st_intersects(UP2012_sf,Maillage_Annee_sf_liste[[as.character(x)]]))$row.id),]
-  if(length(which(duplicated(UP_risk_sf_liste_2)))>0){
-    UP_risk_sf_liste_2 <- UP_risk_sf_liste_2[-c(which(duplicated(UP_risk_sf_liste_2))),]}
-  UP_risk_sf_liste_2[[x]] <- UP_risk_sf_liste_2}
-UP_risk_sf_liste_2 <- lapply(2006:2010, function(x) UP_risk_fonction_2(x)) 
-names(UP_risk_sf_liste_2) <- c(2006:2010)
-save(UP_risk_sf_liste_2,file="UP_risk_sf_liste_2.RData")
+Figure_Attaques <- plot_grid(Figure_Attaques, Legende, ncol=1,rel_heights = c(1, .05))
 
-UP_risk_fonction_3 <- function(x){
-  UP_risk_sf_liste_3 <- list()
-  UP_risk_sf_liste_3 <- UP2012_sf[c(as.data.frame(st_intersects(UP2012_sf,Maillage_Annee_sf_liste[[as.character(x)]]))$row.id),]
-  if(length(which(duplicated(UP_risk_sf_liste_3)))>0){
-    UP_risk_sf_liste_3 <- UP_risk_sf_liste_3[-c(which(duplicated(UP_risk_sf_liste_3))),]}
-  UP_risk_sf_liste_3[[x]] <- UP_risk_sf_liste_3}
-UP_risk_sf_liste_3 <- lapply(2011:2015, function(x) UP_risk_fonction_3(x)) 
-names(UP_risk_sf_liste_3) <- c(2011:2015)
-save(UP_risk_sf_liste_3,file="UP_risk_sf_liste_3.RData")
+ggsave("Figure4bonus.png", device="png", width=160, height=130, units=c("mm"))
 
-UP_risk_fonction_4 <- function(x){
-  UP_risk_sf_liste_4 <- list()
-  UP_risk_sf_liste_4 <- UP2012_sf[c(as.data.frame(st_intersects(UP2012_sf,Maillage_Annee_sf_liste[[as.character(x)]]))$row.id),]
-  if(length(which(duplicated(UP_risk_sf_liste_4)))>0){
-    UP_risk_sf_liste_4 <- UP_risk_sf_liste_4[-c(which(duplicated(UP_risk_sf_liste_4))),]}
-  UP_risk_sf_liste_4[[x]] <- UP_risk_sf_liste_4}
-UP_risk_sf_liste_4 <- lapply(2016:2018, function(x) UP_risk_fonction_4(x)) 
-names(UP_risk_sf_liste_4) <- c(2016:2018)
-save(UP_risk_sf_liste_4,file="UP_risk_sf_liste_4.RData")
+############################################## Figure Bonus 3 ###############################################
 
-UP_risk_sf_liste <- c(UP_risk_sf_liste_1,UP_risk_sf_liste_2,UP_risk_sf_liste_3,UP_risk_sf_liste_4)
+Annee <- c(1999,2004,2010,2018)
 
-#Prepare depredated PS data
-PSatt_Annee_fonction <- function(x){
-  PSatt_Annee_sf_liste <- list()
-  PSatt_Annee_sf_liste[[x]] <- UP_risk_sf_liste[[as.character(x)]][c(as.data.frame(st_intersects(UP_risk_sf_liste[[as.character(x)]],Attaques_sf_liste[[as.character(x)]]))$row.id),]}
-PSatt_Annee_sf_liste <- lapply(1995:2018, function(x) PSatt_Annee_fonction(x)) 
-names(PSatt_Annee_sf_liste) <- c(1995:2018)
-save(PSatt_Annee_sf_liste,file="PSatt_Annee_sf_liste.RData")
+Resultats_Ripley_Mercantour_df_liste <- list()
+for(x in Annee){
+  Resultats_Ripley_Mercantour_df_liste[[x]] <- data.frame(x=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$r/1000,
+                                                          y=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$obs/10e+8,
+                                                          lower=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$lo/10e+8,
+                                                          upper=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$hi/10e+8,
+                                                          annee=as.factor(x))}
+Resultats_Ripley_Mercantour_df <- do.call("rbind", Resultats_Ripley_Mercantour_df_liste)
+Resultats_Ripley_Mercantour_df$annee <- factor(Resultats_Ripley_Mercantour_df$annee, 
+                                               levels = c("1999", "2010", "2004", "2018"))
 
-#### Local scale
+# Rmin_Ripley <- min(c(max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[1]),"x"]),
+#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[2]),"x"]),
+#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[3]),"x"]),
+#                      max(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==as.character(Annee[4]),"x"])))
 
-#Prepare wolf distribution within study area data
-MaillageM_Annee_fonction <- function(x){
-  MaillageM_Annee_sf_liste <- list()
-  MaillageM_Annee_sf_liste[[x]] <- Maillage_Loup_sf_liste[[as.character(x)]][c(as.data.frame(st_intersects(Maillage_Loup_sf_liste[[as.character(x)]],Mercantour_sf))$row.id),]}
-MaillageM_Annee_sf_liste <- lapply(1995:2018, function(x) MaillageM_Annee_fonction(x)) 
-names(MaillageM_Annee_sf_liste) <- c(1995:2018)
-save(MaillageM_Annee_sf_liste,file="MaillageM_Annee_sf_liste.RData")
+# ggplot(Resultats_Ripley_Mercantour_df) +
+#   geom_ribbon(aes(ymin = lower,ymax = upper,x = x,fill = annee),alpha = 0.6,size = 0.8) +
+#   geom_line(aes(y = y, x = x, colour = annee),size = 0.4,linetype = "twodash") +
+#   scale_fill_manual(values = c("1999" = "#D8B365","2004" = "#F6E8C3","2010" = "#5AB4AC","2018" = "#01665E"),
+#                     breaks = c("1999", "2004", "2010", "2018"),name="") +
+#   scale_colour_manual(values = c("1999" = "#8C510A","2004" = "#D8B365","2010" = "#5AB4AC","2018" = "#01665E"),
+#                       breaks = c("1999", "2004", "2010", "2018"),name="") +
+#   scale_x_continuous(breaks = scales::pretty_breaks(n = 6)
+#                      # limits=c(0,Rmin_Ripley)
+#                       ) +
+#   labs(x="r (km)", y= bquote(italic(K[inhom]~(10^9)))) +
+#   theme_bw()+
+#   theme(axis.text = element_text(size=10, family="Segoe UI"),
+#         legend.text = element_text(size=10),
+#         legend.box.margin = margin(0,0,0,0),
+#         legend.margin=margin(0,0,0,0),
+#         axis.title = element_text(size=13, face="italic", family="Segoe UI"),
+#         axis.title.x = element_text(margin = unit(c(t = 3, r = 0, b = 0, l = 0), "mm")),
+#         axis.ticks = element_line(colour = 'black', size = 0.1),
+#         axis.line = element_line(colour = "black", size=0.1),
+#         panel.border = element_blank(), 
+#         panel.grid.minor.x = element_line(colour = NA),
+#         panel.grid.major = element_blank())
+# 
+# ggsave("Figure5.png", device="png", width=100, height= 80, units=c("mm"))
 
-#Prepare all PS data
-UP_M_Annee1 <- rep(list(UP1996_Mercantour_sf),length(1995:2005))
-UP_M_Annee2 <- rep(list(UP2012_Mercantour_sf),length(2006:2018))
-UP_M_Annee <- c(UP_M_Annee1,UP_M_Annee2)
-names(UP_M_Annee) <- c(1995:2018)
+Resultats_Ripley_Mercantour_plot_fonction <- function(x){
+  Resultats_Ripley_Mercantour_plot_liste <- list()
+  Resultats_Ripley_Mercantour_plot <- ggplot(Resultats_Ripley_Mercantour_df[Resultats_Ripley_Mercantour_df$annee==Annee[x],]) +
+    geom_ribbon(aes(ymin=lower, ymax=upper, x=x),fill="#D8B365",colour=NA,alpha=0.4, size=0.8)+
+    geom_line(aes(y=y,x=x),colour="#D8B365", size=0.5,linetype="solid") + 
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 4)) +
+    labs(x="r (km)", y= bquote(italic(K[inhom]~(10^9)))) +
+    theme_bw()+
+    theme(axis.text = element_text(size=10, family="Segoe UI"),
+          legend.text = element_text(size=10),
+          legend.box.margin = margin(0,0,0,0),
+          legend.margin=margin(0,0,0,0),
+          axis.title = element_text(size=13, face="italic", family="Segoe UI"),
+          axis.title.x = element_text(margin = unit(c(t = 3, r = 0, b = 0, l = 0), "mm")),
+          axis.ticks = element_line(colour = 'black', size = 0.1),
+          axis.line = element_line(colour = "black", size=0.1),
+          panel.border = element_blank(), 
+          panel.grid.minor.x = element_line(colour = NA),
+          panel.grid.major = element_blank())
+  Resultats_Ripley_Mercantour_plot_liste[[x]] <- Resultats_Ripley_Mercantour_plot}
+Resultats_Ripley_Mercantour_plot_liste <- lapply(1:4, function(x) Resultats_Ripley_Mercantour_plot_fonction(x))
 
-#Prepare PS under rik data
-UP_M_risk_fonction <- function(x){
-  UP_M_risk_sf_liste <- list()
-  UP_M_risk_sf_liste <- UP_M_Annee[[as.character(x)]][c(as.data.frame(st_intersects(UP_M_Annee[[as.character(x)]],MaillageM_Annee_sf_liste[[as.character(x)]]))$row.id),]
-  if(length(which(duplicated(UP_M_risk_sf_liste)))>0){
-    UP_M_risk_sf_liste <- UP_M_risk_sf_liste[-c(which(duplicated(UP_M_risk_sf_liste))),]}
-  UP_M_risk_sf_liste[[x]] <- UP_M_risk_sf_liste}
-UP_M_risk_sf_liste <- lapply(1995:2018, function(x) UP_M_risk_fonction(x)) 
-names(UP_M_risk_sf_liste) <- c(1995:2018)
-save(UP_M_risk_sf_liste,file="UP_M_risk_sf_liste.RData")
+FigureRipleyMercantour <- plot_grid(Resultats_Ripley_Mercantour_plot_liste[[1]]+ xlab(NULL) + theme(legend.position="none"),
+                   Resultats_Ripley_Mercantour_plot_liste[[2]]+ ylab(NULL)+xlab(NULL) + theme(legend.position="none"),
+                   Resultats_Ripley_Mercantour_plot_liste[[3]]+ theme(legend.position="none"),
+                   Resultats_Ripley_Mercantour_plot_liste[[4]]+ ylab(NULL) + theme(legend.position="none"),
+                   align = 'vh',
+                   nrow=2,
+                   labels = c(as.character(Annee)), 
+                   label_x=0.2,
+                   label_fontfamily = "Segoe UI",
+                   label_fontface = "plain",
+                   label_size = 15)
 
-#Prepare depredated PS data
-PSatt_M_Annee_fonction <- function(x){
-  PSatt_M_Annee_sf_liste <- list()
-  PSatt_M_Annee_sf_liste[[x]] <- UP_M_risk_sf_liste[[as.character(x)]][c(as.data.frame(st_intersects(UP_M_risk_sf_liste[[as.character(x)]],Attaques_sf_liste[[as.character(x)]]))$row.id),]}
-PSatt_M_Annee_sf_liste <- lapply(1995:2018, function(x) PSatt_M_Annee_fonction(x)) 
-names(PSatt_M_Annee_sf_liste) <- c(1995:2018)
-save(PSatt_M_Annee_sf_liste,file="PSatt_M_Annee_sf_liste.RData")
+###################################### Figure Bonus 4 #########################################
 
-###################################### Supplementary Figure 4 #########################################
+Annee_Mercantour <- c(1999,2004,2010,2018)
 
-setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Data")
+Attaques_Mercantour_plot_fonction <- function(x){
+  Attaques_Mercantour_plot_liste <- list()
+  Attaques_Mercantour_plot_liste[[x]] <- ggplot() +
+    geom_sf(data=Mercantour_tot,fill="white",color="black", size=0.000001) +
+    geom_sf(data=UP_Loup_Mercantour_sf_liste[[as.character(Annee_Mercantour[x])]],color=NA,aes(fill="Pastoral surfaces \nunder depredation risk")) +
+    geom_sf(data=Attaques_Mercantour_sf_liste[[as.character(Annee_Mercantour[x])]],aes(color="Depredation on sheep"),size=9)+
+    scale_fill_manual(values=c("Pastoral surfaces \nunder depredation risk"=brewer.pal(9,"Greens")[5]),name="")+
+    scale_color_manual(values=c("Depredation on sheep"=brewer.pal(11,"Spectral")[1]),name="")+
+    north(data=Mercantour_tot,location="topright",scale=0.10,symbol=2) +
+    ggsn::scalebar(data=Mercantour_tot,transform = FALSE,dist = 10,dist_unit = "km", model = "WGS84",
+                   st.dist=0.035, st.size=25, border.size=0.20,location = "bottomleft",family="Segoe UI")  +
+    theme(axis.title = element_blank(),panel.border = element_blank(),
+          axis.text = element_blank(),axis.ticks = element_blank(),
+          legend.text = element_text(size=85),
+          legend.key.size = unit(2.5, 'cm'),
+          legend.key.width = unit(6, 'cm'),
+          legend.spacing.y = unit(25, 'cm'),
+          legend.spacing.x = unit(3, 'cm'),
+          legend.position = "bottom",
+          panel.grid.major = element_line(size = 2))}
+Attaques_Mercantour_plot_liste <- lapply(1:4, function(x) Attaques_Mercantour_plot_fonction(x))
 
-#General setup
-Annees <- c(1995:2018)
+FigureRipleyMercantour <- plot_grid(Attaques_Mercantour_plot_liste[[1]]+ theme(legend.position="none"),
+                                    Attaques_Mercantour_plot_liste[[2]]+ theme(legend.position="none"),
+                                    Attaques_Mercantour_plot_liste[[3]]+ theme(legend.position="none"),
+                                    Attaques_Mercantour_plot_liste[[4]]+ theme(legend.position="none"),
+                                    align = 'vh',
+                                    nrow=2,
+                                    labels = c(as.character(Annee_Mercantour)), 
+                                    label_x=0.55,
+                                    label_y=0.9,
+                                    label_fontfamily = "Segoe UI",
+                                    label_fontface = "plain",
+                                    label_size = 125)
 
-# #Prepare data
-Modele <- list(Full_model_Kinhom_liste,Null_model_K_liste,Null2_model_K_liste)
-names(Modele) <- c("Full model","K null model","K null model 2")
+Legende <- get_legend(Attaques_Mercantour_plot_liste[[1]]+ 
+                        guides(color = guide_legend(override.aes = list(size=15)),
+                               fill = guide_legend(override.aes = list(size=1))))
 
-Resultats_Ripley_df_fonction <- function(x) {
-  Resultats_Ripley_df_liste <- list()
-  Resultats_Ripley_Annee_df_liste <- list()
-  for(m in names(Modele)){
-    Resultats_Ripley_Annee_df_liste[[m]] <- data.frame(x=Modele[[m]][[as.character(x)]]$r/1000,
-                                                       y=Modele[[m]][[as.character(x)]]$obs/10e+8,
-                                                       lower=Modele[[m]][[as.character(x)]]$lo/10e+8,
-                                                       upper=Modele[[m]][[as.character(x)]]$hi/10e+8,
-                                                       model=as.character(m))}
-  Resultats_Ripley_Annee_df <- do.call("rbind", Resultats_Ripley_Annee_df_liste)
-  Resultats_Ripley_df_liste[[x]] <- Resultats_Ripley_Annee_df}
-Resultats_Ripley_df_liste <- lapply(Annees, function(x) Resultats_Ripley_df_fonction(x))
-names(Resultats_Ripley_df_liste) <- c(Annees)
-save(Resultats_Ripley_df_liste,file="~/Etudes/Points chauds/Dossier revu/Data/Resultats_Ripley_df_liste.RData")
-
-Resultats_Ripley_Mercantour_df_fonction <- function(x) {
-  Resultats_Ripley_Annee_Mercantour_df_liste <- list()
-  Resultats_Ripley_Annee_Mercantour_df_liste[[x]] <- data.frame(x=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$r/1000,
-                                                                y=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$obs/10e+8,
-                                                                lower=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$lo/10e+8,
-                                                                upper=Full_model_Kinhom_Mercantour_liste[[as.character(x)]]$hi/10e+8)}
-Resultats_Ripley_Annee_Mercantour_df_liste <- lapply(Annees, function(x) Resultats_Ripley_Mercantour_df_fonction(x))
-names(Resultats_Ripley_Annee_Mercantour_df_liste) <- c(Annees)
-save(Resultats_Ripley_Annee_Mercantour_df_liste,file="~/Etudes/Points chauds/Dossier revu/Data/Resultats_Ripley_Annee_Mercantour_df_liste.RData")
-
-###################################### Supplementary Figure 5 #########################################
-
-#Prepare data of UP
-Results_UPhotspots_sf_fonction <- function(x){
-  Results_UPhotspots_sf_liste <- list()
-  UP_Loup_annee_sf <- UP_Loup_sf_liste[[as.character(x)]]
-  # Identify which PU are depredated
-  UP_Loup_annee_sf$ATTAQUES <- Donnees_Cluster_UP_df_liste[[as.character(x)]]$ATTAQUES
-  UP_Loup_nonpredatees_annee_sf <- UP_Loup_annee_sf[UP_Loup_annee_sf$ATTAQUES==0,]
-  UP_Loup_predatees_annee_sf <- UP_Loup_annee_sf[UP_Loup_annee_sf$ATTAQUES>0,]
-  # Identify which PU are primary or secondary clusters
-  UP_Loup_annee_sf[c(as.numeric(row.names(UP_Loup_nonpredatees_annee_sf))),"CLUSTER_POND"] <- "No depredated"
-  UP_Loup_annee_sf[c(as.numeric(row.names(UP_Loup_nonpredatees_annee_sf))),"CLUSTER_FICTIF"] <- "No depredated"
-  UP_Loup_annee_sf[c(as.numeric(row.names(UP_Loup_predatees_annee_sf))),"CLUSTER_POND"] <- "No hotspot"
-  UP_Loup_annee_sf[c(as.numeric(row.names(UP_Loup_predatees_annee_sf))),"CLUSTER_FICTIF"] <- "No hotspot"
-  UP_Loup_annee_sf[c(Cluster_UPpredatees_Effectifpondere_liste[[as.character(x)]]),"CLUSTER_POND"] <- "Primary hotspot"
-  UP_Loup_annee_sf[c(Cluster_UPpredatees_Effectifhomogene_liste[[as.character(x)]]),"CLUSTER_FICTIF"] <- "Primary hotspot"
-  UP_Loup_annee_sf[c(Cluster2_UPpredatees_Effectifpondere_liste[[as.character(x)]]$IDCluster),"CLUSTER_POND"] <- "Hotspot"
-  UP_Loup_annee_sf[c(Cluster2_UPpredatees_Effectifhomogene_liste[[as.character(x)]]$IDCluster),"CLUSTER_FICTIF"] <- "Hotspot"
-  Results_UPhotspots_sf_liste[[x]] <- UP_Loup_annee_sf} 
-Results_UPhotspots_sf_liste <- lapply(Annees, function(x) Results_UPhotspots_sf_fonction(x))
-names(Results_UPhotspots_sf_liste) <- Annees
-
-#Prepare data of primary cluster circle for heterogeneous sheep availability
-Results_PrimaryCluster_hetero_sf_fonction <- function(x){
-  Results_PrimaryCluster_hetero_sf_liste <- list()
-  UP_Loup_annee_sf <- Results_UPhotspots_sf_liste[[as.character(x)]]
-  UPCentre_PtChaudPrimaire_pondere <- UP_Loup_annee_sf[Cluster_UPpredatees_Effectifpondere_liste[[as.character(x)]][1],]
-  Distance_UPCentre_UPExt_pondere <- max(st_distance(UPCentre_PtChaudPrimaire_pondere,
-                                                     UP_Loup_annee_sf[UP_Loup_annee_sf$CLUSTER_POND=="Primary hotspot",]))
-  
-  Cercle_PtChaudPrimaire_pondere <- st_buffer(UPCentre_PtChaudPrimaire_pondere,Distance_UPCentre_UPExt_pondere)
-  Results_PrimaryCluster_hetero_sf_liste[[x]] <- Cercle_PtChaudPrimaire_pondere} 
-Results_PrimaryCluster_hetero_sf_liste <- lapply(Annees, function(x) Results_PrimaryCluster_hetero_sf_fonction(x))
-names(Results_PrimaryCluster_hetero_sf_liste) <- Annees
-save(Results_PrimaryCluster_hetero_sf_liste, file="~/Etudes/Points chauds/Dossier revu/Data/Results_PrimaryCluster_hetero_sf_liste.RData")
-
-#Prepare data of primary cluster circle for homogeneous sheep availability
-Results_PrimaryCluster_homo_sf_fonction <- function(x){
-  Results_PrimaryCluster_homo_sf_liste <- list()
-  UP_Loup_annee_sf <- Results_UPhotspots_sf_liste[[as.character(x)]]
-  UPCentre_PtChaudPrimaire_homogene <- UP_Loup_annee_sf[Cluster_UPpredatees_Effectifhomogene_liste[[as.character(x)]][1],]
-  Distance_UPCentre_UPExt_homogene <- max(st_distance(UPCentre_PtChaudPrimaire_homogene,
-                                                      UP_Loup_annee_sf[UP_Loup_annee_sf$CLUSTER_FICTIF=="Primary hotspot",]))
-  Cercle_PtChaudPrimaire_homogene <-st_buffer(UPCentre_PtChaudPrimaire_homogene,Distance_UPCentre_UPExt_homogene)
-  Results_PrimaryCluster_homo_sf_liste[[x]] <- Cercle_PtChaudPrimaire_homogene} 
-Results_PrimaryCluster_homo_sf_liste <- lapply(Annees, function(x) Results_PrimaryCluster_homo_sf_fonction(x))
-names(Results_PrimaryCluster_homo_sf_liste) <- Annees
-save(Results_PrimaryCluster_homo_sf_liste, file="~/Etudes/Points chauds/Dossier revu/Data/Results_PrimaryCluster_homo_sf_liste.RData")
-
-#Prepare data of secondary cluster circles for heterogeneous sheep availability
-Results_SecondaryCluster_hetero_sf_fonction <- function(x){
-  Results_SecondaryCluster_hetero_sf_liste <- list()
-  Cluster2_Annee_pondere <- Cluster2_UPpredatees_Effectifpondere_liste[[as.character(x)]]
-  UP_Loup_annee_sf <- Results_UPhotspots_sf_liste[[as.character(x)]]
-  Cercles_PtsChaudsSecondaires_pondere_liste <- list()
-  if(!is.null(Cluster2_Annee_pondere)){
-    for (n in 1:max(Cluster2_Annee_pondere$Niveau)){
-      if(nrow(Cluster2_Annee_pondere[Cluster2_Annee_pondere$Niveau==n,])>1){
-        UPCentre_PtChaudSecondaire_pondere <- UP_Loup_annee_sf[Cluster2_Annee_pondere[Cluster2_Annee_pondere$Niveau==n,][1,2],]
-        Distance_UPCentre_UPExt_pondere <- max(st_distance(UPCentre_PtChaudSecondaire_pondere,
-                                                           UP_Loup_annee_sf[Cluster2_Annee_pondere[Cluster2_Annee_pondere$Niveau==n,][,2],]))
-        if(as.numeric(Distance_UPCentre_UPExt_pondere)==0){
-          Cercle_PtChaudSecondaire_pondere <- st_buffer(UPCentre_PtChaudSecondaire_pondere, sqrt(st_area(st_union(UP_Loup_annee_sf[Cluster2_Annee_pondere[Cluster2_Annee_pondere$Niveau==n,][,2],]))/pi))}
-        else{
-          Cercle_PtChaudSecondaire_pondere <- st_buffer(UPCentre_PtChaudSecondaire_pondere,Distance_UPCentre_UPExt_pondere)}
-        Cercles_PtsChaudsSecondaires_pondere_liste[[n]] <- Cercle_PtChaudSecondaire_pondere}}
-    if(nrow(Cluster2_Annee_pondere)!=1 & length(Cercles_PtsChaudsSecondaires_pondere_liste)!=0){
-      Cercles_PtsChaudsSecondaires_pondere_liste[sapply(Cercles_PtsChaudsSecondaires_pondere_liste, is.null)] <- NULL}}
-  Results_SecondaryCluster_hetero_sf_liste[[x]] <- Cercles_PtsChaudsSecondaires_pondere_liste} 
-Results_SecondaryCluster_hetero_sf_liste <- lapply(Annees, function(x) Results_SecondaryCluster_hetero_sf_fonction(x))
-names(Results_SecondaryCluster_hetero_sf_liste) <- Annees
-save(Results_SecondaryCluster_hetero_sf_liste, file="~/Etudes/Points chauds/Dossier revu/Data/Results_SecondaryCluster_hetero_sf_liste.RData")
-
-#Prepare data of secondary cluster circles for homogeneous sheep availability
-Results_SecondaryCluster_homo_sf_fonction <- function(x){
-  Results_SecondaryCluster_homo_sf_liste <- list()
-  Cluster2_Annee_homogene <- Cluster2_UPpredatees_Effectifhomogene_liste[[as.character(x)]]
-  UP_Loup_annee_sf <- Results_UPhotspots_sf_liste[[as.character(x)]]
-  Cercles_PtsChaudsSecondaires_homogene_liste <- list()
-  if(!is.null(Cluster2_Annee_homogene)){
-    for (n in 1:max(Cluster2_Annee_homogene$Niveau)){
-      if(nrow(Cluster2_Annee_homogene[Cluster2_Annee_homogene$Niveau==n,])>1){
-        UPCentre_PtChaudSecondaire_homogene <- UP_Loup_annee_sf[Cluster2_Annee_homogene[Cluster2_Annee_homogene$Niveau==n,][1,2],]
-        Distance_UPCentre_UPExt_homogene <- max(st_distance(UPCentre_PtChaudSecondaire_homogene,                                                          UP_Loup_annee_sf[Cluster2_Annee_homogene[Cluster2_Annee_homogene$Niveau==n,][,2],]))
-        if(as.numeric(Distance_UPCentre_UPExt_homogene)==0){
-          Cercle_PtChaudSecondaire_homogene <- st_buffer(UPCentre_PtChaudSecondaire_homogene, sqrt(st_area(st_union(UP_Loup_annee_sf[Cluster2_Annee_homogene[Cluster2_Annee_homogene$Niveau==n,][,2],]))/pi))}
-        else{
-          Cercle_PtChaudSecondaire_homogene <- st_buffer(UPCentre_PtChaudSecondaire_homogene,Distance_UPCentre_UPExt_homogene)}
-        Cercles_PtsChaudsSecondaires_homogene_liste[[n]] <- Cercle_PtChaudSecondaire_homogene}}
-    if(nrow(Cluster2_Annee_homogene)!=1 & length(Cercles_PtsChaudsSecondaires_homogene_liste)!=0){
-      Cercles_PtsChaudsSecondaires_homogene_liste[sapply(Cercles_PtsChaudsSecondaires_homogene_liste, is.null)] <- NULL}}
-  Results_SecondaryCluster_homo_sf_liste[[x]] <- Cercles_PtsChaudsSecondaires_homogene_liste} 
-Results_SecondaryCluster_homo_sf_liste <- lapply(Annees, function(x) Results_SecondaryCluster_homo_sf_fonction(x))
-names(Results_SecondaryCluster_homo_sf_liste) <- Annees
-save(Results_SecondaryCluster_homo_sf_liste, file="~/Etudes/Points chauds/Dossier revu/Data/Results_SecondaryCluster_homo_sf_liste.RData")
-
-#Merge primary and secondary PS hotspots into one single column
-
-Results_UPhotspots2_sf_fonction <- function(x){
-  Results_UPhotspots2_sf_liste <- list()
-  UP_Loup_annee_sf <- Results_UPhotspots_sf_liste[[as.character(x)]]
-  UP_Loup_annee_sf$CLUSTER_POND <- factor(UP_Loup_annee_sf$CLUSTER_POND, levels = c("No depredated","No hotspot","Primary hotspot", "Hotspot"))
-  levels(UP_Loup_annee_sf$CLUSTER_POND) <- c("No depredated","No hotspot","Hotspot", "Hotspot")
-  UP_Loup_annee_sf$CLUSTER_FICTIF <- factor(UP_Loup_annee_sf$CLUSTER_FICTIF, levels = c("No depredated","No hotspot","Primary hotspot", "Hotspot"))
-  levels(UP_Loup_annee_sf$CLUSTER_FICTIF) <- c("No depredated","No hotspot","Hotspot", "Hotspot")
-  Results_UPhotspots2_sf_liste[[x]] <- UP_Loup_annee_sf}
-
-Results_UPhotspots2_sf_liste_1 <- lapply(1995:2005, function(x) Results_UPhotspots2_sf_fonction(x))
-names(Results_UPhotspots2_sf_liste_1) <- 1995:2005
-save(Results_UPhotspots2_sf_liste_1, file="~/Etudes/Points chauds/Dossier revu/Data/Results_UPhotspots2_sf_liste_1.RData")
-
-Results_UPhotspots2_sf_liste_2 <- lapply(2006:2010, function(x) Results_UPhotspots2_sf_fonction(x))
-names(Results_UPhotspots2_sf_liste_2) <- 2006:2010
-save(Results_UPhotspots2_sf_liste_2, file="~/Etudes/Points chauds/Dossier revu/Data/Results_UPhotspots2_sf_liste_2.RData")
-
-Results_UPhotspots2_sf_liste_3 <- lapply(2011:2014, function(x) Results_UPhotspots2_sf_fonction(x))
-names(Results_UPhotspots2_sf_liste_3) <- 2011:2014
-save(Results_UPhotspots2_sf_liste_3, file="~/Etudes/Points chauds/Dossier revu/Data/Results_UPhotspots2_sf_liste_3.RData")
-
-Results_UPhotspots2_sf_liste_4 <- lapply(2015:2018, function(x) Results_UPhotspots2_sf_fonction(x))
-names(Results_UPhotspots2_sf_liste_4) <- 2015:2018
-save(Results_UPhotspots2_sf_liste_4, file="~/Etudes/Points chauds/Dossier revu/Data/Results_UPhotspots2_sf_liste_4.RData")
+FigureMercantour <- plot_grid(FigureRipleyMercantour, Legende, ncol=1,rel_heights = c(1, .05))
