@@ -9,10 +9,10 @@ library(dplyr)
 library(spatstat)
 
 # Working directory
-setwd("C:/Users/grente/Documents/Etudes/Points chauds/Dossier revu/Data")
+setwd("C:/Users/grente/Documents/Etudes/Thèse Loup/Points chauds/Dossier revu/Data")
 
 # Datasets
-Mercantour <- TRUE #FALSE for the general dataset, choose TRUE for the restricted dataset
+Mercantour <- FALSE #FALSE for the general dataset, choose TRUE for the restricted dataset
 
 if(Mercantour == FALSE){
   load("UP_Loup_sf_liste.RData")
@@ -71,7 +71,8 @@ ObsWindow_fonction <- function(x) {
 if(Mercantour == FALSE){
   ObsWindow_owin_liste <- lapply(1995:2018, function(x) ObsWindow_fonction(x)) 
   names(ObsWindow_owin_liste) <- c(1995:2018)
-  save(ObsWindow_owin_liste,file="ObsWindow_owin_liste.RData")}
+  # save(ObsWindow_owin_liste,file="ObsWindow_owin_liste.RData")
+  }
 
 if(Mercantour == TRUE){
   ObsWindow_owin_liste <- lapply(1995:2018, function(x) ObsWindow_fonction(x)) 
@@ -79,7 +80,7 @@ if(Mercantour == TRUE){
   ObsWindow_Mercantour_owin_liste <- ObsWindow_owin_liste
   save(ObsWindow_Mercantour_owin_liste,file="ObsWindow_owin_Mercantour_liste.RData")}
 
-########## Create a raster with sheep numbers and grazing time attrbuted per pixel ###########
+########## Create a raster with sheep numbers and grazing time attributed per pixel ###########
 
 Intensite_df_fonction <- function(x) {
   Intensite_df_liste <- list()
@@ -118,7 +119,8 @@ Intensite_df_fonction <- function(x) {
 if(Mercantour == FALSE){
   Intensite_df_liste <- lapply(1995:2018, function(x) Intensite_df_fonction(x)) 
   names(Intensite_df_liste) <- c(1995:2018)
-  save(Intensite_df_liste,file="Intensite_df_liste.RData")}
+  #save(Intensite_df_liste,file="Intensite_df_liste.RData")
+  }
 
 if(Mercantour == TRUE){
   Intensite_df_liste <- lapply(1995:2018, function(x) Intensite_df_fonction(x)) 
